@@ -1,0 +1,58 @@
+[
+  {
+    "id": "trend_chua_lanh",
+    "title": "Chữa lành & Bỏ phố về quê",
+    "genre": "Slice of Life, Lãng mạn",
+    "tags": ["chữa lành", "thanh bình", "Đà Lạt", "ẩm thực"],
+    "description": "Câu chuyện nhẹ nhàng về người trẻ rời bỏ áp lực chốn đô thị, tìm về vùng quê yên bình để chữa lành tâm hồn, đan xen những rung động tình cảm giản dị.",
+    "prompt_snippet": "Viết một câu chuyện nhẹ nhàng mang phong cách 'chữa lành', bối cảnh ở một vùng quê yên bình như Đà Lạt hoặc Tây Bắc. Nhân vật chính là một người trẻ vừa từ bỏ công việc áp lực ở thành phố lớn. Tập trung miêu tả cảnh vật thiên nhiên, các món ăn dân dã và một tình yêu chớm nở bình dị. Giọng văn từ tốn, ấm áp."
+  },
+  {
+    "id": "trend_trung_sinh_nu_cuong",
+    "title": "Trùng sinh báo thù & Nữ cường",
+    "genre": "Drama, Đấu trí",
+      "description": "Motif kinh điển nhưng luôn hot: hai người xa lạ buộc phải kết hôn vì một thỏa thuận, nhưng lửa gần rơm lâu ngày cũng bén.",
+    "description": "Nhân vật chính sống lại sau một kiếp bi thảm, mang theo ký ức kiếp trước quyết tâm lật ngược thế cờ, trừng trị kẻ ác và làm lại cuộc đời.",
+    "prompt_snippet": "Viết một câu chuyện kịch tính về một nhân vật nữ chính trùng sinh quay lại thời điểm 5 năm trước khi bi kịch xảy ra. Cô ấy sử dụng ký ức kiếp trước để giăng bẫy lật đổ những kẻ từng hãm hại mình. Xây dựng hình tượng nhân vật nữ chính thông minh, quyết đoán, lạnh lùng, tuyệt đối không lụy tình. Cao trào là một màn 'vả mặt' cực gắt."
+  },
+  {
+    "id": "trend_cuoi_truoc_yeu_sau",
+    "title": "Cưới trước yêu sau / Hợp đồng hôn nhân",
+    "genre": "Ngôn tình, Hiện đại",
+    "tags": ["tổng tài", "hợp đồng hôn nhân", "ngọt ngào", "oan gia"],
+    "description": "Motif kinh điển nhưng luôn hot: hai người xa lạ buộc phải kết hôn vì một thỏa thuận, nhưng 'lửa gần rơm lâu ngày cũng bén'.",
+    "prompt_snippet": "Viết một truyện tình cảm hiện đại với motif 'cưới trước yêu sau'. Hai nhân vật chính ký một hợp đồng hôn nhân kéo dài 1 năm vì lợi ích gia tộc. Ban đầu họ như oan gia ngõ hẹp, thường xuyên khắc khẩu. Nhưng qua những chi tiết nhỏ nhặt trong đời sống chung, nam chính bá đạo bắt đầu bộc lộ sự ôn nhu và nữ chính dần rung động. Kết thúc ngọt ngào."
+  },
+  {
+    "id": "trend_linh_di_dan_gian",
+    "title": "Linh dị dân gian Việt Nam",
+    "genre": "Kinh dị, Giật gân",
+    "tags": ["tâm linh", "dân gian", "kinh dị", "nghiệp báo"],
+    "description": "Khai thác các yếu tố văn hóa, tín ngưỡng, bùa ngải, truyền thuyết đô thị hoặc làng quê Việt Nam, kết hợp luật nhân quả.",
+    "prompt_snippet": "Viết một truyện ngắn kinh dị mang yếu tố tâm linh dân gian Việt Nam. Bối cảnh là một ngôi làng Bắc Bộ thời xưa hoặc một khu tập thể cũ. Khai thác các chi tiết rùng rợn như tiếng gõ cửa lúc nửa đêm, bóng đè, hoặc một phong tục bí ẩn nào đó. Không khí truyện âm u, dồn dập, cái kết mang thông điệp về luật nhân quả."
+  },
+  {
+    "id": "trend_he_thong_vo_tri",
+    "title": "Xuyên thư & Hệ thống 'Vô tri'",
+    "genre": "Hài hước, Xuyên không",
+    "tags": ["hệ thống", "xuyên thư", "vô tri", "hài hước"],
+    "description": "Nhân vật xuyên vào một cuốn tiểu thuyết làm nhân vật phản diện, bị ép hoàn thành nhiệm vụ bởi một 'hệ thống' nhưng lại hay làm hỏng việc một cách tấu hài.",
+    "prompt_snippet": "Viết một câu chuyện hài hước về một cô gái/chàng trai xuyên không vào một cuốn tiểu thuyết cẩu huyết, hóa thân thành ác nữ/ác nam phụ. Nhân vật bị một 'Hệ Thống' ép phải làm việc xấu, nhưng do bản tính 'vô tri' và lười biếng, mọi hành động tàn ác lại biến thành tấu hài và vô tình thu hút sự chú ý của nam/nữ chính. Giọng văn vui nhộn, nhiều tiếng lóng Gen Z."
+  },
+  {
+    "id": "trend_thanh_xuan_vuon_truong",
+    "title": "Thanh xuân vườn trường & Tình đầu",
+    "genre": "Thanh xuân, Lãng mạn",
+    "tags": ["thanh xuân", "cấp 3", "tình đầu", "nuối tiếc"],
+    "description": "Cảm giác hoài niệm về những năm tháng học trò cấp 3, những rung động đầu đời trong veo, những cơn mưa rào và mùa bế giảng.",
+    "prompt_snippet": "Viết một truyện ngắn về chủ đề thanh xuân vườn trường. Bối cảnh là những năm tháng cấp 3 dưới mái trường Việt Nam. Tập trung vào những chi tiết như: chỗ ngồi cạnh cửa sổ, tà áo dài, tiếng ve kêu, và một lời tỏ tình chưa dám ngỏ cùng người bạn cùng bàn. Giọng văn hoài niệm, trong sáng, có thể có một chút nuối tiếc ở cuối."
+  },
+  {
+    "id": "trend_cong_so_gen_z",
+    "title": "Drama công sở & Gen Z đi làm",
+    "genre": "Hiện thực, Hài hước",
+    "tags": ["công sở", "Gen Z", "chạy deadline", "sếp và nhân viên"],
+    "description": "Góc nhìn hài hước, châm biếm về đời sống văn phòng, những tình huống dở khóc dở cười giữa sếp và nhân viên Gen Z.",
+    "prompt_snippet": "Viết một mẩu chuyện đời sống công sở hiện đại với góc nhìn hài hước. Nhân vật chính là một nhân viên Gen Z đang phải vật lộn với deadline, drama văn phòng và một người sếp khó tính nhưng thực chất lại rất hay bao che cho nhân viên. Đan xen các tình huống dở khóc dở cười khi Gen Z đối đáp sếp bằng những câu nói hot trend trên mạng."
+  }
+]

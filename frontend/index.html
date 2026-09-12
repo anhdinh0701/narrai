@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NarrAI Workspace - ISTARTUP2026</title>
+    <link rel="stylesheet" href="style.css?v=2026090612">
+</head>
+<body class="workspace-mode">
+
+    <!-- LANDING PAGE -->
+    <div id="landingContainer">
+        <nav class="landing-nav">
+            <div class="landing-logo">NarrAI <span>Pro</span></div>
+            <div class="landing-actions">
+                <button onclick="setLang('vi')" class="lang-btn-landing">VIE</button>
+                <button onclick="setLang('en')" class="lang-btn-landing">ENG</button>
+                <button onclick="openAuthModal()" class="landing-login-btn" data-i18n="login">Đăng nhập</button>
+            </div>
+        </nav>
+        
+        <header class="hero-section">
+            <h1 data-i18n="hero_title">Khởi Tạo Tác Phẩm Của Bạn Bằng Trí Tuệ Nhân Tạo</h1>
+            <p data-i18n="hero_sub">Nền tảng Co-creation Workspace hiện đại giúp bạn biến mọi ý tưởng điên rồ nhất thành cuốn tiểu thuyết hoàn chỉnh chỉ trong vài phút.</p>
+            <button onclick="openAuthModal()" class="hero-cta-btn" data-i18n="hero_cta">Bắt đầu sáng tác miễn phí</button>
+        </header>
+
+        <section class="features-section">
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3 data-i18n="feat1_title">AI Plot Interview</h3>
+                <p data-i18n="feat1_desc">Trợ lý AI sẽ phỏng vấn bạn để khai thác và làm chặt chẽ cốt truyện trước khi đặt bút viết.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3 data-i18n="feat2_title">Interactive Editing</h3>
+                <p data-i18n="feat2_desc">Bôi đen bất kỳ đoạn văn nào và yêu cầu AI viết lại, mở rộng hoặc tóm lược theo ý muốn.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🌍</div>
+                <h3 data-i18n="feat3_title">Đa Ngôn Ngữ</h3>
+                <p data-i18n="feat3_desc">Hỗ trợ giao diện song ngữ (Anh - Việt) và AI am hiểu văn phong tác giả quốc tế.</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- WORKSPACE APP (Hidden until logged in) -->
+    <div class="workspace-layout" id="appContainer" style="display: none;">
+        <!-- Panel Trái: Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>NarrAI</h1>
+            </div>
+            
+            <!-- User Info & Auth -->
+            <div class="sidebar-user" id="userSection">
+                <p id="welcomeUser" data-i18n="not_logged_in">Chưa đăng nhập</p>
+                <button id="loginBtnSidebar" onclick="openAuthModal()" class="auth-btn" data-i18n="login">Đăng nhập</button>
+                <button id="logoutBtnSidebar" onclick="logout()" class="auth-btn" style="display:none;" data-i18n="logout">Đăng xuất</button>
+            </div>
+            
+            <div class="sidebar-menu">
+                <button class="nav-btn active" onclick="location.reload()" data-i18n="new_story">➕ Viết truyện mới</button>
+                <button class="nav-btn" onclick="openHistory()" data-i18n="story_history">📚 Lịch sử truyện</button>
+            </div>
+            
+            <!-- Language Switcher -->
+            <div class="lang-switcher">
+                <button onclick="setLang('vi')" id="btnLangVi" class="lang-btn active">VIE</button>
+                <button onclick="setLang('en')" id="btnLangEn" class="lang-btn">ENG</button>
+            </div>
+
+            <div class="sidebar-footer">
+                <p>MVP for ISTARTUP2026</p>
+            </div>
+        </aside>
+
+        <!-- Panel Giữa: Main Editor -->
+        <main class="main-editor">
+            <!-- Setup Flow -->
+            <div id="setupView">
+                <section id="phase1" class="phase active">
+                    <h2 data-i18n="step1_title">Bước 1: Khởi nguồn ý tưởng</h2>
+                    <div class="trending-section">
+                        <p class="label" data-i18n="genres_label">🎨 Thể loại truyện (Chọn nhiều):</p>
+                        <input type="text" id="genreSearch" class="genre-search" data-i18n-placeholder="search_genre" placeholder="Tìm kiếm thể loại..." onkeyup="filterGenres()">
+                        <div id="genresContainer" class="trending-container" style="margin-bottom: 15px; max-height: 200px; overflow-y: auto; border: 1px solid #E5E7EB; padding: 10px; border-radius: 8px;">
+                            <!-- JS will populate genres -->
+                        </div>
+
+                        <p class="label" data-i18n="themes_label">🔥 Chủ đề thịnh hành (Mix nhiều chủ đề):</p>
+                        <div id="trendingContainer" class="trending-container">
+                            <!-- JS will populate trending topics -->
+                        </div>
+                    </div>
+
+                    <textarea id="initialPrompt" data-i18n-placeholder="prompt_placeholder" placeholder="Ví dụ: Một thế giới nơi phép thuật bị cấm đoán..."></textarea>
+                    <button onclick="generateQuestions()" class="primary-btn" data-i18n="continue_btn">Tiếp tục ➔</button>
+                </section>
+
+                <section id="phase2" class="phase">
+                    <h2 data-i18n="step2_title">Bước 2: Phỏng vấn Cốt truyện với AI</h2>
+                    <div id="chatBox" class="chat-box"></div>
+                    <div class="chat-input-area">
+                        <textarea id="chatInput" data-i18n-placeholder="chat_placeholder" placeholder="Nhập câu trả lời của bạn... (Bấm Enter để gửi)" rows="2"></textarea>
+                        <button onclick="sendChatMessage()" class="send-btn" data-i18n="send_btn">Gửi</button>
+                    </div>
+                    <button onclick="forceRefinePrompt()" class="skip-btn" style="margin-top: 15px;" data-i18n="skip_chat_btn">Bỏ qua hỏi đáp, Chốt dàn ý luôn</button>
+                </section>
+
+                <section id="phase3" class="phase">
+                    <h2 data-i18n="step3_title">Bước 3: Chốt cấu hình & Viết truyện</h2>
+                    
+                    <div class="pro-max-controls">
+                        <div class="control-group">
+                            <label><span data-i18n="story_length">Độ dài truyện</span>: <span id="lenLabel">Medium</span></label>
+                            <input type="range" id="lengthSlider" min="1" max="3" value="2" class="pro-slider" oninput="updateLenLabel()">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label><span data-i18n="creativity">Độ sáng tạo (Creativity)</span>: <span id="creativityLabel">Cân bằng</span></label>
+                            <input type="range" id="creativitySlider" min="1" max="3" value="2" class="pro-slider" oninput="updateCreativityLabel()">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label><span data-i18n="pacing">Nhịp độ (Pacing)</span>: <span id="pacingLabel">Vừa phải</span></label>
+                            <input type="range" id="pacingSlider" min="1" max="3" value="2" class="pro-slider" oninput="updatePacingLabel()">
+                        </div>
+                    </div>
+
+                    <button onclick="generateStory()" class="primary-btn" data-i18n="start_writing_btn" style="margin-top: 20px;">Bắt đầu Chấp bút ✍️</button>
+                </section>
+            </div>
+
+            <!-- Editor Flow (Hidden initially) -->
+            <div id="editorView" style="display: none;">
+                <div class="editor-header">
+                    <h2 id="storyTitle" data-i18n="editor_title">Bản Thảo Đang Viết...</h2>
+                    <div class="editor-actions">
+                        <span id="wordCount">0 <span data-i18n="words">từ</span></span>
+                        <button onclick="adaptToComic()" class="hero-cta-btn" style="padding: 8px 15px; font-size: 0.9em; box-shadow: none;">🎨 Chuyển thể Truyện tranh</button>
+                        <button onclick="downloadStory()" class="secondary-btn" data-i18n="download_btn">📥 Tải EPUB/PDF</button>
+                    </div>
+                </div>
+                <div id="storyOutput" class="story-canvas" contenteditable="true" spellcheck="false" data-i18n-placeholder="editor_placeholder" placeholder="Câu chuyện sẽ xuất hiện ở đây. Bạn có thể tự gõ thêm bất cứ lúc nào..."></div>
+                
+                <div id="floatingToolbar" class="floating-toolbar" style="display:none;">
+                    <button onclick="interactiveEdit('Hãy viết lại đoạn này cho hay và văn vẻ hơn')" data-i18n="tool_rewrite">✨ Viết lại</button>
+                    <button onclick="interactiveEdit('Hãy mở rộng đoạn này, miêu tả chi tiết bối cảnh và cảm xúc')" data-i18n="tool_expand">🔍 Mở rộng</button>
+                    <button onclick="interactiveEdit('Hãy tóm lược đoạn này cho súc tích, nhịp độ nhanh hơn')" data-i18n="tool_shorten">✂️ Rút gọn</button>
+                    <button onclick="openAIChatForSelection()" data-i18n="tool_ai">🤖 Tùy chỉnh với AI</button>
+                </div>
+            </div> <!-- End editorView -->
+            
+            <!-- Comic Flow -->
+            <div id="comicView" style="display: none;">
+                <div class="editor-header">
+                    <h2>🎨 Truyện Tranh (AI Generated)</h2>
+                    <div class="editor-actions">
+                        <button onclick="backToEditor()" class="secondary-btn">🔙 Quay lại Bản chữ</button>
+                    </div>
+                </div>
+                <div id="comicCanvas" class="comic-canvas">
+                    <div class="ai-loading" id="comicLoading" style="display:none;">Đang phân rã kịch bản và vẽ tranh...</div>
+                    <div id="comicGrid" class="comic-grid"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Panel Phải: AI Co-pilot -> Trợ lý của bạn -->
+        <aside class="ai-panel">
+            <div class="ai-panel-header">
+                <h3 data-i18n="ai_copilot">🤖 Trợ lý của bạn</h3>
+            </div>
+            <div class="ai-panel-body" id="aiCopilotBody">
+                <div class="ai-welcome" id="aiWelcomeMsg">
+                    <p data-i18n="ai_welcome_1">Chào mừng bạn đến với không gian làm việc chuyên nghiệp.</p>
+                    <p><span data-i18n="tip">💡 <b>Mẹo:</b></span> <span data-i18n="ai_welcome_2">Trong quá trình viết, hãy bôi đen một đoạn văn chưa ưng ý trong Bản thảo. Trợ lý sẽ giúp bạn sửa lại nó ngay lập tức!</span></p>
+                </div>
+                
+                <div id="aiSelectionBox" style="display: none;" class="ai-card">
+                    <p class="ai-label" data-i18n="selected_text">Đoạn văn đang chọn:</p>
+                    <div class="ai-quote" id="aiSelectionText"></div>
+                    <textarea id="aiCustomInstruction" data-i18n-placeholder="ai_instruction_placeholder" placeholder="Ví dụ: Đổi giọng văn buồn bã hơn..."></textarea>
+                    <button onclick="submitCustomEdit()" class="ai-action-btn" data-i18n="ai_request_btn">Yêu cầu AI sửa 🪄</button>
+                </div>
+
+                <div id="aiResultBox" style="display: none;" class="ai-card">
+                    <p class="ai-label" data-i18n="ai_result">Kết quả từ AI:</p>
+                    <div class="ai-result-text" id="aiNewText"></div>
+                    <div class="ai-result-actions">
+                        <button onclick="acceptEdit()" class="ai-btn-success" data-i18n="accept_btn">✅ Thay thế</button>
+                        <button onclick="rejectEdit()" class="ai-btn-danger" data-i18n="reject_btn">❌ Hủy bỏ</button>
+                    </div>
+                </div>
+
+                <!-- Chat UI (giống Phase 1) -->
+                <div class="chat-box" id="chatHistory" style="max-height: 300px; overflow-y: auto; margin-bottom: 10px;">
+                    <!-- Chat messages will appear here -->
+                </div>
+                <div class="chat-input-area">
+                    <textarea id="chatInputText" placeholder="Ra lệnh cho AI: bẻ lái cốt truyện, thêm nhân vật..." rows="2"></textarea>
+                    <button onclick="sendAssistantMessage()" class="send-btn">Gửi</button>
+                </div>
+
+                <!-- Nút hành động nhanh -->
+                <div class="story-action-buttons" style="display: flex; gap: 10px; margin-top: 12px;">
+                    <button onclick="continueWriting()" class="primary-btn" style="flex:1; font-size: 0.85em; padding: 10px;">
+                        ✍️ Viết tiếp chương mới
+                    </button>
+                    <button onclick="endStory()" class="skip-btn" style="flex:1; font-size: 0.85em; padding: 10px; background: #dc2626; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                        🔚 Kết thúc truyện
+                    </button>
+                </div>
+                
+                <div id="aiLoading" style="display: none;" class="ai-loading" data-i18n="ai_thinking">
+                    AI đang suy nghĩ...
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal" style="display:none;">
+        <div class="modal-content auth-content">
+            <span class="close" onclick="closeAuthModal()">&times;</span>
+            <h2 id="authTitle" data-i18n="login">Đăng nhập</h2>
+            <div class="auth-form">
+                <input type="text" id="authUsername" data-i18n-placeholder="username" placeholder="Tên đăng nhập">
+                <input type="password" id="authPassword" data-i18n-placeholder="password" placeholder="Mật khẩu">
+                <p id="authError" style="color:red; font-size:0.9em; margin-bottom:10px;"></p>
+                <button onclick="submitAuth()" class="primary-btn" id="authSubmitBtn" data-i18n="login">Đăng nhập</button>
+                <p style="margin-top: 15px; text-align: center; font-size: 0.9em;">
+                    <span id="authToggleText" data-i18n="no_account">Chưa có tài khoản?</span> 
+                    <a href="javascript:void(0)" onclick="toggleAuthMode()" id="authToggleLink" style="color: #4F46E5; font-weight: bold;" data-i18n="register_now">Đăng ký ngay</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeHistory()">&times;</span>
+            <h2 data-i18n="story_history">📚 Lịch sử truyện</h2>
+            <div id="historyList" data-i18n="loading">Đang tải...</div>
+        </div>
+    </div>
+
+    <script src="script.js?v=2026090613"></script>
+</body>
+</html>

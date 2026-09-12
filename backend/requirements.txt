@@ -1,0 +1,9 @@
+fastapi>=0.100
+uvicorn>=0.24
+groq>=0.11.0
+pydantic==2.13.5
+python-dotenv==1.0.0
+sqlalchemy>=2.0.0
+passlib[bcrypt]
+pyjwt
+python-multipart
