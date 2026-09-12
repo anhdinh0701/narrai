@@ -4,7 +4,9 @@ import json
 import time
 import base64
 
-COMFYUI_URL = "http://127.0.0.1:8188"
+import os
+
+COMFYUI_URL = os.environ.get("COMFYUI_URL", "http://127.0.0.1:8188")
 
 def get_first_checkpoint():
     """Fetch available checkpoints and return the first one."""
