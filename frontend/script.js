@@ -1,6 +1,8 @@
 const API_URL = (window.location.port === "3000" || window.location.protocol === "file:")
     ? "http://localhost:8000/api"
-    : "/api";
+    : (window.location.hostname.includes("vercel.app")
+        ? "https://narrai-2.onrender.com/api"
+        : "/api");
 
 let globalData = {
     initialPrompt: "",
