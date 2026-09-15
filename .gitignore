@@ -1,5 +1,10 @@
-﻿# Environments
+# Environments
 .env
+.env.local
+.env.production.local
+backend/.env
+backend/.env.local
+backend/outputs/
 .venv
 env/
 venv/
@@ -19,3 +24,7 @@ narrai.db
 
 # Project zips
 *.zip
+
+# Nested clones
+main/
+

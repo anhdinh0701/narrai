@@ -2,6 +2,10 @@ import asyncio
 import time
 import httpx
 import json
+import sys
+
+# Configure UTF-8 for Windows console output
+sys.stdout.reconfigure(encoding='utf-8')
 
 API_URL = "http://localhost:8000/api"
 

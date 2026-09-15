@@ -1,9 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 import json
 import os
+import time
 from dotenv import load_dotenv
 
 # Load .env from current directory
@@ -23,11 +24,21 @@ def safe_generation_error(error, operation="sinh truyện"):
         return f"Yêu cầu {operation} vượt giới hạn token hiện tại. Hãy chọn nội dung ngắn hơn hoặc thử lại sau."
     return f"Không thể {operation} lúc này. Vui lòng thử lại sau."
 
-# CORS configuration
+# CORS configuration — restricted origins
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:8000")
+ALLOWED_ORIGINS = [
+    FRONTEND_URL,
+    "http://localhost:3000",
+    "http://localhost:8000",
+]
+# Add production URL if different
+if FRONTEND_URL not in ALLOWED_ORIGINS:
+    ALLOWED_ORIGINS.append(FRONTEND_URL)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -51,10 +62,15 @@ def get_story_generator():
     return story_generator
 
 import re
-from fastapi.responses import StreamingResponse, JSONResponse
-from db.models import Story, User, engine
+from datetime import datetime
+from fastapi.responses import StreamingResponse, JSONResponse, RedirectResponse
+from db.models import Story, User, AuthAccount, TokenBlacklist, engine
 from sqlalchemy.orm import sessionmaker, Session
-from auth import verify_password, get_password_hash, create_access_token, decode_access_token
+from auth import (
+    verify_password, get_password_hash,
+    create_access_token, create_refresh_token, decode_access_token,
+    is_token_blacklisted, blacklist_token, cleanup_expired_blacklist,
+)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -73,24 +89,43 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login", auto_error=False)
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     if not token:
         return None
-        
-    if token in USER_CACHE:
-        return USER_CACHE[token]
-        
+    
+    # Decode token
     payload = decode_access_token(token)
     if not payload:
         return None
-    username: str = payload.get("sub")
+    
+    # Check token type
+    if payload.get("type") != "access":
+        return None
+    
+    # Check blacklist
+    jti = payload.get("jti")
+    if jti and is_token_blacklisted(jti, db):
+        return None
+    
+    # Check cache
+    cache_key = f"{payload.get('sub')}:{jti}"
+    if cache_key in USER_CACHE:
+        return USER_CACHE[cache_key]
+    
+    username = payload.get("sub")
     user = db.query(User).filter(User.username == username).first()
     
     if user:
-        USER_CACHE[token] = user
+        USER_CACHE[cache_key] = user
         
     return user
 
 # ============ PYDANTIC MODELS ============
 class ChatInterviewRequest(BaseModel):
-    chat_history: list
+    chat_history: list | None = None
+    initial_prompt: str | None = None
+    answers: list | None = None
+    questions: list | None = None
+
+class GenerateQuestionsRequest(BaseModel):
+    prompt: str
 
 class ChatRequest(BaseModel):
     story_text: str
@@ -108,43 +143,249 @@ class EditTextRequest(BaseModel):
 class UserCreate(BaseModel):
     username: str
     password: str
+    email: str | None = None
+    name: str | None = None
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
 # ============ AUTH ENDPOINTS ============
 
 @app.post("/api/register")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    # Use email if provided, otherwise use username as email
+    email = user.email or user.username
+    
+    # Check duplicate by username
     existing = db.query(User).filter(User.username == user.username).first()
     if existing:
         raise HTTPException(status_code=400, detail="Tên đăng nhập đã tồn tại")
     
+    # Check duplicate by email (if different from username)
+    if email != user.username:
+        existing_email = db.query(User).filter(User.email == email).first()
+        if existing_email:
+            raise HTTPException(status_code=400, detail="Email đã được sử dụng")
+    
     hashed_password = get_password_hash(user.password)
-    new_user = User(username=user.username, password_hash=hashed_password)
+    new_user = User(
+        username=user.username,
+        email=email,
+        name=user.name or user.username,
+        password_hash=hashed_password,
+    )
     db.add(new_user)
     db.commit()
     return {"status": "success", "message": "Đăng ký thành công"}
 
 @app.post("/api/login")
 def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.password_hash):
+    # Find user by username OR email
+    user = db.query(User).filter(
+        (User.username == form_data.username) | (User.email == form_data.username)
+    ).first()
+    
+    if not user or not user.password_hash or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=400, detail="Sai tên đăng nhập hoặc mật khẩu")
     
     access_token = create_access_token(data={"sub": user.username})
-    return {"access_token": access_token, "token_type": "bearer", "username": user.username}
+    refresh_token = create_refresh_token(data={"sub": user.username})
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "username": user.username,
+    }
+
+@app.post("/api/refresh")
+def refresh_access_token(req: RefreshTokenRequest, db: Session = Depends(get_db)):
+    payload = decode_access_token(req.refresh_token)
+    if not payload or payload.get("type") != "refresh":
+        raise HTTPException(status_code=401, detail="Refresh token không hợp lệ hoặc đã hết hạn")
+    
+    # Check blacklist
+    jti = payload.get("jti")
+    if jti and is_token_blacklisted(jti, db):
+        raise HTTPException(status_code=401, detail="Token đã bị vô hiệu hóa")
+    
+    username = payload.get("sub")
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Người dùng không tồn tại")
+    
+    # Blacklist the old refresh token (single use)
+    if jti:
+        exp = datetime.utcfromtimestamp(payload.get("exp", 0))
+        blacklist_token(jti, exp, db)
+    
+    new_access = create_access_token(data={"sub": user.username})
+    new_refresh = create_refresh_token(data={"sub": user.username})
+    
+    return {
+        "access_token": new_access,
+        "refresh_token": new_refresh,
+        "token_type": "bearer",
+    }
+
+@app.post("/api/logout")
+def logout_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    if not token:
+        return {"status": "success", "message": "Đã đăng xuất"}
+    
+    payload = decode_access_token(token)
+    if payload:
+        jti = payload.get("jti")
+        if jti:
+            exp = datetime.utcfromtimestamp(payload.get("exp", 0))
+            try:
+                blacklist_token(jti, exp, db)
+            except Exception:
+                pass  # Already blacklisted or DB error — still log out client side
+    
+    # Periodically clean up expired entries
+    try:
+        cleanup_expired_blacklist(db)
+    except Exception:
+        pass
+    
+    return {"status": "success", "message": "Đã đăng xuất"}
 
 @app.get("/api/me")
 def read_users_me(current_user: User = Depends(get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Chưa đăng nhập")
-    return {"username": current_user.username}
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email,
+        "name": current_user.name,
+        "avatar_url": current_user.avatar_url,
+    }
+
+# ============ OAUTH SOCIAL LOGIN ENDPOINTS ============
+
+@app.get("/api/auth/providers")
+def get_auth_providers():
+    """Return list of configured OAuth providers for frontend."""
+    from oauth import get_available_providers
+    return {"providers": get_available_providers()}
+
+@app.get("/api/auth/{provider}")
+async def oauth_login(provider: str, request: Request):
+    """Redirect user to OAuth provider's authorization page."""
+    from oauth import oauth as oauth_client, is_provider_configured
+    
+    if not is_provider_configured(provider):
+        return RedirectResponse(f"{FRONTEND_URL}?auth_error=provider_not_configured&provider={provider}")
+    
+    redirect_uri = f"{FRONTEND_URL}/api/auth/{provider}/callback"
+    client = oauth_client.create_client(provider)
+    return await client.authorize_redirect(request, redirect_uri)
+
+@app.get("/api/auth/{provider}/callback")
+async def oauth_callback(provider: str, request: Request, db: Session = Depends(get_db)):
+    """Handle OAuth callback: find or create user, return JWT via redirect."""
+    from oauth import oauth as oauth_client, is_provider_configured, get_oauth_user_info
+    
+    if not is_provider_configured(provider):
+        raise HTTPException(status_code=400, detail=f"Provider '{provider}' chưa được cấu hình")
+    
+    try:
+        client = oauth_client.create_client(provider)
+        token = await client.authorize_access_token(request)
+    except Exception as e:
+        return RedirectResponse(f"{FRONTEND_URL}?auth_error=oauth_failed")
+    
+    user_info = await get_oauth_user_info(provider, token)
+    if not user_info or not user_info.get("provider_account_id"):
+        return RedirectResponse(f"{FRONTEND_URL}?auth_error=no_user_info")
+    
+    provider_id = user_info["provider_account_id"]
+    
+    # 1. Check if this social account is already linked
+    auth_account = db.query(AuthAccount).filter(
+        AuthAccount.provider == provider,
+        AuthAccount.provider_account_id == provider_id,
+    ).first()
+    
+    if auth_account:
+        user = db.query(User).filter(User.id == auth_account.user_id).first()
+    else:
+        user = None
+        
+        # 2. Check if email matches an existing user
+        email = user_info.get("email")
+        if email:
+            user = db.query(User).filter(User.email == email).first()
+        
+        # 3. Create new user if no match found
+        if not user:
+            username = email or f"{provider}_{provider_id}"
+            # Ensure unique username
+            base_username = username
+            counter = 1
+            while db.query(User).filter(User.username == username).first():
+                username = f"{base_username}_{counter}"
+                counter += 1
+            
+            user = User(
+                username=username,
+                email=email,
+                name=user_info.get("name"),
+                avatar_url=user_info.get("avatar_url"),
+                password_hash=None,  # Social-only user, no password
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        else:
+            # Update avatar/name from social profile if not set
+            if user_info.get("avatar_url") and not user.avatar_url:
+                user.avatar_url = user_info["avatar_url"]
+            if user_info.get("name") and not user.name:
+                user.name = user_info["name"]
+            db.commit()
+        
+        # 4. Link the social account
+        new_auth = AuthAccount(
+            user_id=user.id,
+            provider=provider,
+            provider_account_id=provider_id,
+        )
+        db.add(new_auth)
+        db.commit()
+    
+    # 5. Generate JWT and redirect with token
+    access_token = create_access_token(data={"sub": user.username})
+    refresh_token = create_refresh_token(data={"sub": user.username})
+    
+    return RedirectResponse(
+        f"{FRONTEND_URL}?access_token={access_token}&refresh_token={refresh_token}&username={user.username}"
+    )
 
 # ============ CORE ENDPOINTS ============
+
+@app.post("/api/generate-questions")
+def generate_questions(request: GenerateQuestionsRequest):
+    try:
+        qa = get_qa_refiner()
+        response = qa.chat_interview([{"role": "user", "content": request.prompt}])
+        cleaned = response.replace("[READY]", "").strip()
+        lines = [line.strip() for line in cleaned.split("\n") if line.strip()]
+        questions = [l for l in lines if "?" in l or l.startswith(("1", "2", "3", "4", "-", "*"))]
+        if not questions:
+            questions = [cleaned]
+        return {"status": "success", "questions": questions, "analysis": "Ý tưởng đã được phân tích."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @app.post("/api/chat-interview")
 def chat_interview(request: ChatInterviewRequest):
     try:
         qa = get_qa_refiner()
-        response = qa.chat_interview(request.chat_history)
+        history = request.chat_history or []
+        response = qa.chat_interview(history)
         is_ready = "[READY]" in response
         cleaned_response = response.replace("[READY]", "").strip()
         return {"status": "success", "message": cleaned_response, "is_ready": is_ready}
@@ -155,7 +396,14 @@ def chat_interview(request: ChatInterviewRequest):
 def refine_prompt(request: ChatInterviewRequest):
     try:
         qa = get_qa_refiner()
-        refined = qa.refine_prompt(request.chat_history)
+        history = request.chat_history
+        if not history and request.initial_prompt:
+            history = [{"role": "user", "content": request.initial_prompt}]
+            if request.questions and request.answers:
+                for q, a in zip(request.questions, request.answers):
+                    history.append({"role": "assistant", "content": q})
+                    history.append({"role": "user", "content": a})
+        refined = qa.refine_prompt(history or [])
         return {"status": "success", "refined_prompt": refined}
     except Exception as e:
         import traceback
@@ -279,71 +527,301 @@ async def health():
     return {
         "status": "ok" if not missing else "degraded",
         "message": "Backend is running!",
+        "database": engine.dialect.name,
         "missing_keys": missing,
     }
 
-# ================= COMIC ENDPOINTS =================
-from services.image_gen import generate_comic_panel_image
+# ================= COMIC & IMAGE POST-PROCESSING ENDPOINTS =================
+from typing import Optional, List, Dict, Any
+from fastapi.responses import FileResponse
+from services.image_gen import generate_comic_panel_image, get_comfyui_status
+from services.post_processor import ImagePostProcessor
+from services.stability_service import StabilityImageService
 from db.models import Comic, ComicPanel
 
+post_processor = ImagePostProcessor()
+stability_service = post_processor.stability
+
+@app.get("/api/comfy/status")
+def get_comfy_status():
+    """
+    Returns live connection status of local ComfyUI server and active checkpoint.
+    """
+    return get_comfyui_status()
+
+@app.get("/api/stability/config")
+def get_stability_config():
+    """
+    Public config endpoint for frontend to display enhancement options.
+    Never exposes API keys or secrets.
+    """
+    return {
+        "status": "success",
+        "enabled": stability_service.is_available(),
+        "default_mode": os.environ.get("STABILITY_DEFAULT_MODE", "upscale").strip().lower(),
+        "provider": "stability-ai",
+        "modes": [
+            {"id": "none", "label": "Bản gốc (ComfyUI)"},
+            {"id": "upscale", "label": "Tăng độ nét (Fast Upscale 4x)"},
+            {"id": "enhance", "label": "Tối ưu chi tiết & ánh sáng (SD3 Enhance)"}
+        ]
+    }
+
+@app.get("/api/images/{stage}/{filename}")
+async def get_stage_image(stage: str, filename: str):
+    """
+    Securely serves multi-stage pipeline images:
+    /api/images/original/...
+    /api/images/processed/...
+    /api/images/final/...
+    Prevents path traversal attacks.
+    """
+    allowed_stages = {"original", "processed", "final"}
+    if stage not in allowed_stages:
+        raise HTTPException(status_code=400, detail="Invalid stage")
+
+    # Guard against directory traversal
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    file_path = os.path.join(post_processor.base_dir, stage, filename)
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    return FileResponse(file_path, media_type="image/png")
+
 class ComicRequest(BaseModel):
-    story_id: int
-    story_text: str
+    story_id: Optional[int] = None
+    story_text: Optional[str] = ""
+    enhancement_mode: Optional[str] = "none"
+    strength: Optional[float] = 0.35
 
 @app.post("/api/comic/generate")
 def create_comic(request: ComicRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if not current_user:
-        return {"status": "error", "message": "Bạn chưa đăng nhập."}
+    user_id = current_user.id if current_user else None
+    if not user_id:
+        first_user = db.query(User).first()
+        if first_user:
+            user_id = first_user.id
 
-    story = db.query(Story).filter(
-        Story.id == request.story_id,
-        Story.user_id == current_user.id,
-    ).first()
-    if not story:
-        return {"status": "error", "message": "Không tìm thấy truyện hoặc không có quyền truy cập."}
-        
+    effective_text = (request.story_text or "").strip()
+    if not effective_text or len(effective_text) < 5:
+        if request.story_id:
+            s_rec = db.query(Story).filter(Story.id == request.story_id).first()
+            if s_rec and s_rec.story_content:
+                effective_text = s_rec.story_content
+        if not effective_text:
+            effective_text = "Một câu chuyện hành động kịch tính và hào hùng, nhân vật chính bước lên con đường chinh phục đỉnh cao võ học giữa bão tố mây mù."
+
     # 1. Parse text to JSON panels using LLM
     from agents.comic_agent import ComicDirectorAgent
     director = ComicDirectorAgent()
-    script_data = director.generate_comic_script(request.story_text)
+    script_data = director.generate_comic_script(effective_text)
     
+    # Check ComfyUI readiness: 3-4 panels for responsive generation (~45s)
+    comfy_info = get_comfyui_status()
+    max_panels = 4 if comfy_info.get("connected") else 8
+    if len(script_data) > max_panels:
+        script_data = script_data[:max_panels]
+    elif len(script_data) < 3:
+        script_data = script_data + [
+            {"panel_index": len(script_data) + 1, "image_prompt": "A heroic silhouette facing the sunset, manga style, high quality", "dialogue_text": "Hành trình vẫn tiếp diễn...", "layout_type": "wide"}
+        ]
+
     # 2. Save to DB
-    comic = Comic(user_id=current_user.id, story_id=request.story_id, title="Comic Adaptation")
+    comic = Comic(user_id=user_id, story_id=request.story_id, title="Comic Adaptation")
     db.add(comic)
     db.commit()
     db.refresh(comic)
     
     # 3. Create panels and generate images
     panels_response = []
-    for item in script_data:
-        # LLMs often invent slightly different keys, so we check alternatives
+    req_mode = (request.enhancement_mode or "none").strip().lower()
+    strength = request.strength if request.strength is not None else 0.35
+
+    for idx, item in enumerate(script_data):
         p_img_prompt = item.get('image_prompt') or item.get('description') or item.get('image_description') or 'comic manga scene'
         p_dialogue = item.get('dialogue_text') or item.get('dialogue') or item.get('text') or ''
         p_layout = item.get('layout_type') or item.get('layout') or 'square'
-        
-        # Generate image (using our mock Pollinations API for instant demo)
-        img_url = generate_comic_panel_image(p_img_prompt, seed=comic.id)
-        
+        p_idx = item.get('panel_index', idx + 1)
+
+        # Stage 1: Fast, reliable curated manga panel or ComfyUI
+        raw_image = generate_comic_panel_image(p_img_prompt, seed=comic.id + p_idx)
+
+        # In initial batch, if user explicitly selected upscale/enhance, enhance panel 1 to avoid timeout
+        panel_enh_mode = req_mode if (req_mode in ("upscale", "enhance") and idx == 0) else "none"
+
+        proc_result = post_processor.process_panel_image(
+            comic_id=comic.id,
+            panel_index=p_idx,
+            raw_image=raw_image,
+            prompt=p_img_prompt,
+            mode=panel_enh_mode,
+            strength=strength
+        )
+
         panel = ComicPanel(
             comic_id=comic.id,
-            panel_index=item.get('panel_index', 1),
+            panel_index=p_idx,
             image_prompt=p_img_prompt,
             dialogue_text=p_dialogue,
             layout_type=p_layout,
-            image_url=img_url
+            image_url=proc_result["final_url"],
+            original_image_url=proc_result["original_url"],
+            processed_image_url=proc_result["processed_url"],
+            final_image_url=proc_result["final_url"],
+            enhancement_provider=proc_result["provider"],
+            enhancement_mode=proc_result["mode"],
+            enhancement_status=proc_result["status"]
         )
         db.add(panel)
         db.commit()
-        
+        db.refresh(panel)
+
         panels_response.append({
+            'id': panel.id,
             'panel_index': panel.panel_index,
             'image_url': panel.image_url,
+            'original_image_url': panel.original_image_url,
+            'processed_image_url': panel.processed_image_url,
+            'final_image_url': panel.final_image_url,
+            'enhancement_provider': panel.enhancement_provider,
+            'enhancement_mode': panel.enhancement_mode,
+            'enhancement_status': panel.enhancement_status,
             'image_prompt': panel.image_prompt,
             'dialogue_text': panel.dialogue_text,
             'layout_type': panel.layout_type
         })
         
     return {"status": "success", "comic_id": comic.id, "panels": panels_response}
+
+class EnhancePanelRequest(BaseModel):
+    panel_id: int
+    mode: str = "upscale"  # "upscale" or "enhance"
+    strength: Optional[float] = 0.35
+
+@app.post("/api/comic/enhance-panel")
+def enhance_comic_panel(request: EnhancePanelRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    On-demand individual panel enhancement or upscaling via Stability AI.
+    """
+    panel = db.query(ComicPanel).filter(ComicPanel.id == request.panel_id).first()
+    if not panel:
+        return {"status": "error", "message": "Không tìm thấy khung tranh."}
+
+    # Source is original image if available, else current image_url
+    input_source = panel.original_image_url or panel.image_url
+    if not input_source:
+        return {"status": "error", "message": "Khung tranh không có dữ liệu ảnh."}
+
+    # If input_source is a served endpoint URL like /api/images/original/xyz.png, convert to local path
+    if input_source.startswith("/api/images/"):
+        rel_subpath = input_source.replace("/api/images/", "").strip("/")
+        input_source = os.path.join(post_processor.base_dir, rel_subpath)
+
+    proc_result = post_processor.process_panel_image(
+        comic_id=panel.comic_id,
+        panel_index=panel.panel_index,
+        raw_image=input_source,
+        prompt=panel.image_prompt or "",
+        mode=request.mode,
+        strength=request.strength or 0.35
+    )
+
+    if proc_result.get("status") == "fallback":
+        return {
+            "status": "error",
+            "message": "Không thể xử lý qua Stability AI lúc này (API lỗi hoặc không phản hồi). Đã giữ nguyên ảnh gốc.",
+            "panel": {
+                'id': panel.id,
+                'panel_index': panel.panel_index,
+                'image_url': panel.image_url,
+                'original_image_url': panel.original_image_url,
+                'processed_image_url': panel.processed_image_url,
+                'final_image_url': panel.final_image_url,
+                'enhancement_provider': panel.enhancement_provider,
+                'enhancement_mode': panel.enhancement_mode,
+                'enhancement_status': panel.enhancement_status
+            }
+        }
+
+    panel.processed_image_url = proc_result["processed_url"]
+    panel.final_image_url = proc_result["final_url"]
+    panel.image_url = proc_result["final_url"]
+    panel.enhancement_provider = proc_result["provider"]
+    panel.enhancement_mode = proc_result["mode"]
+    panel.enhancement_status = proc_result["status"]
+    db.commit()
+    db.refresh(panel)
+
+    return {
+        "status": "success",
+        "panel": {
+            'id': panel.id,
+            'panel_index': panel.panel_index,
+            'image_url': panel.image_url,
+            'original_image_url': panel.original_image_url,
+            'processed_image_url': panel.processed_image_url,
+            'final_image_url': panel.final_image_url,
+            'enhancement_provider': panel.enhancement_provider,
+            'enhancement_mode': panel.enhancement_mode,
+            'enhancement_status': panel.enhancement_status
+        }
+    }
+
+class RegenerateComfyUIPanelRequest(BaseModel):
+    panel_id: int
+    prompt: Optional[str] = None
+
+@app.post("/api/comic/generate-comfyui-panel")
+def regenerate_comfyui_panel(request: RegenerateComfyUIPanelRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    On-demand individual panel re-generation using local ComfyUI model.
+    """
+    panel = db.query(ComicPanel).filter(ComicPanel.id == request.panel_id).first()
+    if not panel:
+        return {"status": "error", "message": "Không tìm thấy khung tranh."}
+
+    prompt = (request.prompt or panel.image_prompt or "comic manga scene").strip()
+    seed = (panel.id * 7919 + int(time.time())) % 100000000
+
+    raw_image = generate_comic_panel_image(prompt, seed=seed)
+
+    proc_result = post_processor.process_panel_image(
+        comic_id=panel.comic_id,
+        panel_index=panel.panel_index,
+        raw_image=raw_image,
+        prompt=prompt,
+        mode="none"
+    )
+
+    panel.original_image_url = proc_result["original_url"]
+    panel.processed_image_url = proc_result["processed_url"]
+    panel.final_image_url = proc_result["final_url"]
+    panel.image_url = proc_result["final_url"]
+    panel.enhancement_provider = "comfyui"
+    panel.enhancement_mode = "none"
+    panel.enhancement_status = "comfyui_generated"
+    db.commit()
+    db.refresh(panel)
+
+    return {
+        "status": "success",
+        "panel": {
+            'id': panel.id,
+            'panel_index': panel.panel_index,
+            'image_url': panel.image_url,
+            'original_image_url': panel.original_image_url,
+            'processed_image_url': panel.processed_image_url,
+            'final_image_url': panel.final_image_url,
+            'enhancement_provider': panel.enhancement_provider,
+            'enhancement_mode': panel.enhancement_mode,
+            'enhancement_status': panel.enhancement_status,
+            'image_prompt': panel.image_prompt,
+            'dialogue_text': panel.dialogue_text,
+            'layout_type': panel.layout_type
+        }
+    }
 
 @app.post("/api/chat")
 async def chat_with_assistant(request: ChatRequest, current_user: User = Depends(get_current_user)):

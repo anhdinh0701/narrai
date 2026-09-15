@@ -38,6 +38,10 @@ class ComicDirectorAgent:
 
     def generate_comic_script(self, story_text: str):
         try:
+            trimmed_text = (story_text or "").strip()[:4000]
+            if not trimmed_text:
+                trimmed_text = "Một câu chuyện hành động kịch tính và hào hùng trong thế giới truyện tranh."
+
             response = self.llm.chat(
                 messages=[
                     {
@@ -46,11 +50,11 @@ class ComicDirectorAgent:
                     },
                     {
                         "role": "user",
-                        "content": f"Hãy chuyển thể nội dung tiểu thuyết sau thành kịch bản truyện tranh JSON:\n\n{story_text}"
+                        "content": f"Hãy chuyển thể nội dung tiểu thuyết sau thành kịch bản truyện tranh JSON:\n\n{trimmed_text}"
                     }
                 ],
                 temperature=0.7,
-                max_tokens=3500
+                max_tokens=2000
             )
             raw_output = response
             
@@ -60,12 +64,16 @@ class ComicDirectorAgent:
                 raw_output = match.group(0)
                 
             script_data = json.loads(raw_output.strip())
-            return script_data
-        except Exception as e:
-            print("Error parsing comic script:", e)
-            return [
-                {"panel_index": 1, "image_prompt": "A cinematic wide shot of a beautiful landscape, manga style, high quality", "dialogue_text": "Ngày xửa ngày xưa...", "layout_type": "wide"},
-                {"panel_index": 2, "image_prompt": "Close up of a mysterious character with dark eyes, manga style, detailed", "dialogue_text": "Có một bí mật...", "layout_type": "tall"},
-                {"panel_index": 3, "image_prompt": "An action scene with sword clash, dynamic angle, manga style", "dialogue_text": "KENG!", "layout_type": "square"},
-                {"panel_index": 4, "image_prompt": "A character walking away into the sunset, wide angle, manga style", "dialogue_text": "Cuộc hành trình bắt đầu.", "layout_type": "wide"}
-            ]
+            if isinstance(script_data, list) and len(script_data) > 0:
+                return script_data
+        except Exception:
+            pass
+
+        return [
+            {"panel_index": 1, "image_prompt": "A cinematic wide shot of a rugged mountain peak at dawn with swordsman, manga style, high quality", "dialogue_text": "Bão tố sắp nổi lên trên đỉnh núi...", "layout_type": "wide"},
+            {"panel_index": 2, "image_prompt": "Close up of an anime hero with white hair and determined sharp eyes, manga style, detailed", "dialogue_text": "Ta nhất định phải tìm ra sự thật.", "layout_type": "tall"},
+            {"panel_index": 3, "image_prompt": "An intense action fight scene with dynamic kinetic punch impact, dust flying, manga style", "dialogue_text": "ĐỠ ĐÒN NÀY ĐI!", "layout_type": "square"},
+            {"panel_index": 4, "image_prompt": "Two detectives discussing in a dimly lit office with evidence files, manga style", "dialogue_text": "Manh mối này không thể là ngẫu nhiên.", "layout_type": "wide"},
+            {"panel_index": 5, "image_prompt": "A futuristic city skyline viewed through high-rise window at dusk, purple lighting, manga style", "dialogue_text": "Bóng đêm bắt đầu bao trùm toàn bộ thành phố.", "layout_type": "wide"},
+            {"panel_index": 6, "image_prompt": "A team of companions standing together facing the golden dawn horizon, manga style, cinematic", "dialogue_text": "Cuộc hành trình vĩ đại chính thức mở ra!", "layout_type": "wide"}
+        ]
