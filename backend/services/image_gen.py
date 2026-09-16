@@ -5,6 +5,7 @@ import time
 import base64
 import os
 import re
+from typing import Optional, Dict, Any, List
 
 COMFYUI_URL = os.environ.get("COMFYUI_URL", "http://127.0.0.1:8188")
 
@@ -130,46 +131,18 @@ def generate_comic_panel_image(
     2. Otherwise, automatically routes to Primary Cloud Provider: Stability AI.
     3. Fallback to curated asset only if all generative providers fail.
     """
-    # Dynamic aspect ratio sizing for ComfyUI Latent Image
+    # Dynamic aspect ratio sizing for ComfyUI Latent Image (SDXL Animagine XL)
     if not width or not height:
         if layout_type == "wide":
             width, height = 832, 480
         elif layout_type == "tall":
             width, height = 480, 832
         else:
-            width, height = 640, 640
+            width, height = 768, 768
 
     ckpt = get_first_checkpoint()
     if not ckpt:
-        # Route to Primary Cloud Provider: Stability AI
-        try:
-            try:
-                from services.image_provider import ImageProviderFactory
-            except (ImportError, ModuleNotFoundError):
-                from backend.services.image_provider import ImageProviderFactory
-            stability = ImageProviderFactory.get_primary_provider()
-            if stability.is_available():
-                resp = stability.generate_image(
-                    prompt,
-                    negative_prompt=negative_prompt or "",
-                    aspect_ratio=layout_type,
-                    seed=seed
-                )
-                if resp.get("success") and resp.get("image_bytes"):
-                    import uuid
-                    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                    out_dir = os.path.join(backend_dir, "outputs", "final")
-                    os.makedirs(out_dir, exist_ok=True)
-                    fn = f"panel_{uuid.uuid4().hex[:12]}.png"
-                    fp = os.path.join(out_dir, fn)
-                    with open(fp, "wb") as f:
-                        f.write(resp["image_bytes"])
-                    return f"/api/images/final/{fn}"
-        except Exception as e:
-            print(f"[NarrAI ImageGen] Stability AI generation error: {e}")
-
-        print("[NarrAI ImageGen] Using curated fallback panel")
-        return get_curated_panel(prompt, seed=seed)
+        raise RuntimeError("ComfyUI cục bộ hiện đang ngoại tuyến hoặc không tìm thấy checkpoint. Vui lòng khởi động ComfyUI tại http://127.0.0.1:8188.")
 
     clean_prompt = (prompt or "vibrant full color anime manga illustration").strip()
     if "masterpiece" not in clean_prompt.lower():

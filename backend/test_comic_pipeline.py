@@ -46,18 +46,17 @@ assert "dialogue" in result["panels"][0], "Panel 0 must have dialogue"
 assert "image_prompt" in result["panels"][0], "Panel 0 must have image_prompt"
 print(f"Live Groq generation succeeded: {len(result['panels'])} panels orchestrated with Character & Location Bibles!")
 
-print("\n=== 3. Testing Image Provider Factory ===")
+print("\n=== 3. Testing Image Provider Factory (ComfyUI as Primary) ===")
 primary = ImageProviderFactory.get_primary_provider()
-assert isinstance(primary, StabilityImageProvider), "Primary provider must be StabilityImageProvider"
-assert primary.is_available() == True, "Stability AI should be configured"
-assert primary.normalize_aspect_ratio("wide") == "16:9"
-assert primary.normalize_aspect_ratio("tall") == "2:3"
-assert primary.normalize_aspect_ratio("square") == "1:1"
-print("StabilityImageProvider verified. Aspect ratios: 16:9, 2:3, 1:1 mapped properly.")
+assert isinstance(primary, ComfyUIProvider), f"Primary provider must be ComfyUIProvider, got {type(primary).__name__}"
+assert primary.is_available() == True, "ComfyUI should be running locally at http://127.0.0.1:8188"
+assert primary.normalize_aspect_ratio("wide") == "wide"
+assert primary.normalize_aspect_ratio("tall") == "tall"
+assert primary.normalize_aspect_ratio("square") == "square"
+print(f"ComfyUIProvider verified as Primary Provider (Online: {primary.is_available()}). Layouts mapped properly.")
 
 enhancer = ImageProviderFactory.get_local_enhancer()
 assert isinstance(enhancer, ComfyUIProvider), "Enhancer must be ComfyUIProvider"
-print("ComfyUIProvider verified. is_available non-blocking check:", enhancer.is_available())
 
 # Cleanup test job
 session.delete(fetched_job)

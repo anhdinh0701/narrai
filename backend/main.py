@@ -688,23 +688,27 @@ def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: s
             panel_records.append(p_rec)
         db.commit()
 
-        # Step 3: Sequential Image Generation via Primary Provider (Stability AI)
+        # Step 3: Sequential Image Generation via Primary Provider (ComfyUI Local GPU)
         from services.image_provider import ImageProviderFactory
-        stability_provider = ImageProviderFactory.get_primary_provider()
+        comfy_provider = ImageProviderFactory.get_primary_provider()
         backend_dir = os.path.dirname(os.path.abspath(__file__))
         final_dir = os.path.join(backend_dir, "outputs", "final")
         os.makedirs(final_dir, exist_ok=True)
 
-        credit_warning_logged = False
+        if not comfy_provider.is_available():
+            job.error_message = (
+                "ComfyUI cục bộ hiện đang tắt (không kết nối được tới http://127.0.0.1:8188). "
+                "Vui lòng khởi động ComfyUI trên máy tính để tạo tranh."
+            )
 
         for i, panel in enumerate(panel_records):
-            job.current_step = f"Đang vẽ tranh khung {i + 1}/{len(panel_records)}..."
+            job.current_step = f"Đang vẽ tranh khung {i + 1}/{len(panel_records)} qua ComfyUI..."
             job.progress_percent = int(20 + ((i) / len(panel_records)) * 75)
             panel.generation_status = "generating"
             db.commit()
 
             seed_val = (comic.id * 100) + panel.panel_index
-            result = stability_provider.generate_image(
+            result = comfy_provider.generate_image(
                 prompt=panel.image_prompt,
                 negative_prompt=panel.negative_prompt or "",
                 aspect_ratio=panel.layout_type,
@@ -722,7 +726,7 @@ def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: s
                 panel.processed_image_url = panel_url
                 panel.final_image_url = panel_url
                 panel.image_url = panel_url
-                panel.enhancement_provider = "stability"
+                panel.enhancement_provider = "comfyui"
                 panel.enhancement_mode = "text-to-image"
                 panel.enhancement_status = "completed"
                 panel.generation_status = "completed"
@@ -733,12 +737,8 @@ def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: s
                 err_msg = result.get("error_message") or "Không thể tạo ảnh cho khung tranh này"
                 panel.generation_status = "failed"
                 panel.error_message = f"[{err_code}] {err_msg}"
-                if err_code == "INSUFFICIENT_CREDITS" and not credit_warning_logged:
-                    job.error_message = (
-                        "Tài khoản Stability AI của bạn hiện chưa có đủ credits (cần nạp thêm tại platform.stability.ai). "
-                        "Hệ thống đã lưu lại kịch bản, lời thoại và bố cục khung tranh hoàn chỉnh."
-                    )
-                    credit_warning_logged = True
+                if not job.error_message:
+                    job.error_message = err_msg
 
             db.commit()
 
@@ -906,7 +906,7 @@ def retry_comic_panel(panel_id: int, request: RetryPanelRequest = RetryPanelRequ
         raise HTTPException(status_code=404, detail="Không tìm thấy khung tranh.")
 
     from services.image_provider import ImageProviderFactory
-    stability_provider = ImageProviderFactory.get_primary_provider()
+    comfy_provider = ImageProviderFactory.get_primary_provider()
 
     effective_prompt = (request.custom_prompt or panel.image_prompt or "masterpiece full color anime webtoon illustration").strip()
     panel.generation_status = "generating"
@@ -914,7 +914,7 @@ def retry_comic_panel(panel_id: int, request: RetryPanelRequest = RetryPanelRequ
 
     import random
     new_seed = random.randint(1000, 99999999)
-    result = stability_provider.generate_image(
+    result = comfy_provider.generate_image(
         prompt=effective_prompt,
         negative_prompt=panel.negative_prompt or "",
         aspect_ratio=panel.layout_type or "square",
@@ -934,7 +934,7 @@ def retry_comic_panel(panel_id: int, request: RetryPanelRequest = RetryPanelRequ
         panel.image_url = panel_url
         panel.final_image_url = panel_url
         panel.processed_image_url = panel_url
-        panel.enhancement_provider = "stability"
+        panel.enhancement_provider = "comfyui"
         panel.generation_status = "completed"
         panel.error_message = None
         db.commit()
@@ -1171,9 +1171,9 @@ def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), cu
     story_setting = script_data.get("story_setting", "")
     panels_plan = script_data.get("panels", [])
 
-    # Target 12 to 16 panels for a rich, complete comic chapter (allow up to 16)
-    if len(panels_plan) > 16:
-        panels_plan = panels_plan[:16]
+    # Target 12 to 20 panels for a rich, complete comic chapter (allow up to 20)
+    if len(panels_plan) > 20:
+        panels_plan = panels_plan[:20]
 
     comic = Comic(
         user_id=user_id,
@@ -1192,12 +1192,7 @@ def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), cu
     panels_response = []
     req_mode = (request.enhancement_mode or "none").strip().lower()
     strength = request.strength if request.strength is not None else 0.35
-
-    # Auto-select enhancement: if Stability AI available, use upscale for quality
-    if req_mode == "none" and stability_service.is_available():
-        auto_mode = "upscale"
-    else:
-        auto_mode = req_mode
+    auto_mode = req_mode
 
     for idx, item in enumerate(panels_plan):
         p_img_prompt = item.get("comfy_prompt") or item.get("image_prompt") or "manga style panel, high quality"

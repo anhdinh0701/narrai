@@ -17,13 +17,14 @@ FALLBACK_MODEL = "qwen/qwen3.8-27b"
 PRO_COMIC_SYSTEM_PROMPT = """Bạn là Đạo diễn Truyện tranh & Chuyên gia Điều phối Prompt ComfyUI / AI Generation cấp cao (Comic Director, Storyboard Master & ComfyUI Prompt Orchestrator).
 
 NHIỆM VỤ TỐI THƯỢNG:
-Chuyển thể cốt truyện tiếng Việt thành kịch bản phân cảnh 10 ĐẾN 16 KHUNG TRANH (Panels) hoàn chỉnh, liền mạch 100%, bám sát diễn biến câu chuyện, đồng thời điều phối prompt chuyên biệt cho mô hình ComfyUI / Stable Diffusion Anime Webtoon để tranh sinh ra chuẩn xác từng chi tiết, không bị đứt đoạn, nhân vật nhất quán và lời thoại ăn khớp nhịp nhàng.
+Chuyển thể cốt truyện tiếng Việt thành kịch bản phân cảnh 12 ĐẾN 20 KHUNG TRANH (Panels) hoàn chỉnh (khuyến nghị 16 đến 20 khung tranh để câu chuyện phát triển sâu sắc, chi tiết, giàu cảm xúc), liền mạch 100%, bám sát diễn biến câu chuyện, đồng thời điều phối prompt chuyên biệt cho mô hình ComfyUI SDXL Anime Webtoon (Animagine XL) để tranh sinh ra chuẩn xác từng chi tiết, không bị đứt đoạn, nhân vật nhất quán và lời thoại ăn khớp nhịp nhàng.
 
 NGUYÊN TẮC BẮT BUỘC ĐẠO DIỄN:
-1. PHÂN CẢNH 3 HỒI MẠCH LẠC (STORY PROGRESSION):
-   - Hồi 1 (Khởi nguồn & Gặp gỡ - Khung 1 đến 3/4): Đại cảnh thiết lập bối cảnh, giới thiệu mục tiêu của nhân vật chính, biến cố kích hoạt, cuộc hội ngộ hoặc phát hiện đầu tiên.
-   - Hồi 2 (Thử thách & Cao trào xung đột - Khung 4/5 đến 8/10): Đối mặt cạm bẫy, kẻ thù thức tỉnh, cận cảnh giao tranh, nhân vật thi triển chiêu thức võ công/phép thuật, biểu cảm căng thẳng dồn dập.
-   - Hồi 3 (Hóa giải & Vươn tới tương lai - Khung 9/11 đến 12/16): Đòn đánh quyết định hoặc sự hòa giải phong ấn, thu nhận bí kíp/bảo vật, niềm vui chiến thắng, đại cảnh kết màn hướng về giang sơn vạn dặm.
+1. PHÂN CẢNH 4 HỒI MẠCH LẠC (STORY PROGRESSION - 12 ĐẾN 20 PANELS):
+   - Hồi 1 (Khởi nguồn & Thiết lập - Khung 1 đến 4): Đại cảnh thiết lập thế giới, giới thiệu nhân vật chính và mục tiêu cốt lõi, biến cố kích hoạt đưa nhân vật vào hành trình.
+   - Hồi 2 (Phát triển & Cạm bẫy - Khung 5 đến 9): Dấn thân vào thử thách, đối đầu chướng ngại vật/quái vật/kẻ địch sơ khởi, hé lộ bí mật hoặc gặp gỡ đồng đội.
+   - Hồi 3 (Cao trào kịch tính & Bùng nổ - Khung 10 đến 15): Đối mặt nguy hiểm đỉnh điểm, thế trận ngàn cân treo sợi tóc, nhân vật dồn toàn lực thức tỉnh sức mạnh/tuyệt kỹ, cận cảnh biểu cảm căng thẳng tột cùng.
+   - Hồi 4 (Hóa giải, Chiến thắng & Tương lai - Khung 16 đến 20): Đòn kết liễu hoặc giải thoát phong ấn, thu hoạch thành quả/bảo vật, niềm vui sum họp chiến thắng, đại cảnh kết màn hướng về chân trời mới rộng mở.
 
 2. BẢNG THIẾT KẾ NHÂN VẬT BẤT BIẾN (CHARACTER BIBLE):
    - Mỗi nhân vật có ID riêng (CHAR_001, CHAR_002), tên tiếng Việt, tuổi, tính cách.
@@ -120,7 +121,7 @@ class ProComicAgent:
         genre_hint = f"\nThể loại: {genre}" if genre else ""
         style_hint = f"\nPhong cách hội họa: {style}" if style else ""
         user_prompt = (
-            f"Hãy phân tích và chuyển thể câu chuyện sau thành kịch bản truyện tranh 10-16 khung tranh (khuyến nghị 12-16 khung), "
+            f"Hãy phân tích và chuyển thể câu chuyện sau thành kịch bản truyện tranh 12-20 khung tranh (khuyến nghị 16-20 khung tranh), "
             f"điều phối Character Bible, Location Bible và ComfyUI prompt chi tiết cho từng khung tranh:{genre_hint}{style_hint}\n\n{trimmed}"
         )
 
@@ -135,7 +136,7 @@ class ProComicAgent:
                 raw = client.chat(
                     messages=messages,
                     temperature=0.5,
-                    max_tokens=6000,
+                    max_tokens=8000,
                     response_format={"type": "json_object"}
                 )
                 data = self._parse_or_repair_json(raw)
@@ -200,8 +201,8 @@ class ProComicAgent:
         root_negative = data.get("negative_prompt", "")
 
         panels = data.get("panels", [])
-        if len(panels) > 16:
-            panels = panels[:16]
+        if len(panels) > 20:
+            panels = panels[:20]
 
         validated_panels = []
         for i, p in enumerate(panels):

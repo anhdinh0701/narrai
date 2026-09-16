@@ -219,9 +219,9 @@ class StabilityImageProvider(ImageGenerationProvider):
 
 class ComfyUIProvider(ImageGenerationProvider):
     """
-    Optional Local Enhancer / Generator Provider.
-    Only active when ComfyUI is explicitly online on user's machine (http://127.0.0.1:8188).
-    Does NOT block or break production when offline.
+    Primary Image Generation Provider via Local ComfyUI Instance (http://127.0.0.1:8188).
+    Uses high-speed local GPU execution with SDXL Anime Webtoon checkpoints (e.g. Animagine XL V3.1).
+    Zero API cost, full privacy, high-definition full-color output.
     """
 
     def __init__(self):
@@ -230,10 +230,19 @@ class ComfyUIProvider(ImageGenerationProvider):
     def is_available(self) -> bool:
         """Fast non-blocking check if local ComfyUI is listening."""
         try:
-            resp = requests.get(f"{self.base_url}/system_stats", timeout=1.2)
+            resp = requests.get(f"{self.base_url}/system_stats", timeout=1.5)
             return resp.status_code == 200
         except Exception:
             return False
+
+    @staticmethod
+    def normalize_aspect_ratio(layout: str) -> str:
+        clean = (layout or "square").strip().lower()
+        if clean in ("wide", "16:9", "landscape", "horizontal"):
+            return "wide"
+        elif clean in ("tall", "2:3", "9:16", "portrait", "vertical"):
+            return "tall"
+        return "square"
 
     def generate_image(
         self,
@@ -242,25 +251,43 @@ class ComfyUIProvider(ImageGenerationProvider):
         aspect_ratio: str = "1:1",
         seed: Optional[int] = None
     ) -> Dict[str, Any]:
-        """Generate or enhance image via local ComfyUI instance."""
+        """Generate full-color anime panel via local ComfyUI instance."""
         if not self.is_available():
             return {
                 "success": False,
                 "image_bytes": None,
                 "error_code": "COMFYUI_OFFLINE",
-                "error_message": "ComfyUI cục bộ hiện đang tắt (chỉ khả dụng khi bạn bật ComfyUI trên máy tính cá nhân).",
+                "error_message": (
+                    "ComfyUI cục bộ hiện đang ngoại tuyến. "
+                    "Vui lòng khởi động ComfyUI tại http://127.0.0.1:8188 trên máy tính để tạo tranh."
+                ),
                 "provider": "comfyui"
             }
 
         try:
             from services.image_gen import generate_comic_panel_image
-            layout = "wide" if aspect_ratio in ("16:9", "wide") else ("tall" if aspect_ratio in ("2:3", "tall") else "square")
+            layout = self.normalize_aspect_ratio(aspect_ratio)
+            
+            # Optimal latent dimensions for SDXL Animagine XL
+            if layout == "wide":
+                w, h = 832, 480
+            elif layout == "tall":
+                w, h = 480, 832
+            else:
+                w, h = 768, 768
+
+            effective_seed = seed if (seed is not None and seed > 0) else int(time.time() * 1000) % 1000000
+
             result = generate_comic_panel_image(
                 prompt=prompt,
-                seed=seed or 42,
+                seed=effective_seed,
                 layout_type=layout,
+                width=w,
+                height=h,
+                steps=16,
                 negative_prompt=negative_prompt
             )
+
             if result and isinstance(result, str):
                 if result.startswith("data:image/"):
                     parts = result.split(",", 1)
@@ -271,7 +298,8 @@ class ComfyUIProvider(ImageGenerationProvider):
                         "image_bytes": img_bytes,
                         "error_code": None,
                         "error_message": None,
-                        "provider": "comfyui"
+                        "provider": "comfyui",
+                        "aspect_ratio": layout
                     }
                 elif result.startswith("/api/images/"):
                     backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -284,16 +312,24 @@ class ComfyUIProvider(ImageGenerationProvider):
                                 "image_bytes": f.read(),
                                 "error_code": None,
                                 "error_message": None,
-                                "provider": "comfyui"
+                                "provider": "comfyui",
+                                "aspect_ratio": layout
                             }
         except Exception as e:
-            logger.error("[ComfyUIProvider] Local execution error: %s", e)
+            logger.error("[ComfyUIProvider] Generation error: %s", e)
+            return {
+                "success": False,
+                "image_bytes": None,
+                "error_code": "COMFYUI_ERROR",
+                "error_message": f"Lỗi khi render ảnh qua ComfyUI: {str(e)}",
+                "provider": "comfyui"
+            }
 
         return {
             "success": False,
             "image_bytes": None,
-            "error_code": "COMFYUI_ERROR",
-            "error_message": "Lỗi khi xử lý qua ComfyUI cục bộ",
+            "error_code": "COMFYUI_NO_OUTPUT",
+            "error_message": "ComfyUI không trả về dữ liệu ảnh hợp lệ",
             "provider": "comfyui"
         }
 
@@ -301,7 +337,7 @@ class ComfyUIProvider(ImageGenerationProvider):
 class ImageProviderFactory:
     """
     Factory to retrieve appropriate image provider.
-    Enforces Stability AI as Primary Cloud Provider.
+    Enforces Local ComfyUI with Groq prompt orchestration as the Primary Provider.
     """
 
     _stability_provider = None
@@ -309,14 +345,27 @@ class ImageProviderFactory:
 
     @classmethod
     def get_primary_provider(cls) -> ImageGenerationProvider:
-        """Always returns Stability AI as primary provider."""
+        """Always returns ComfyUI as the Primary Provider."""
+        if cls._comfyui_provider is None:
+            cls._comfyui_provider = ComfyUIProvider()
+        return cls._comfyui_provider
+
+    @classmethod
+    def get_comfyui_provider(cls) -> ComfyUIProvider:
+        """Direct access to ComfyUI provider."""
+        if cls._comfyui_provider is None:
+            cls._comfyui_provider = ComfyUIProvider()
+        return cls._comfyui_provider
+
+    @classmethod
+    def get_local_enhancer(cls) -> ComfyUIProvider:
+        """Returns ComfyUI provider for local enhancements."""
+        return cls.get_comfyui_provider()
+
+    @classmethod
+    def get_stability_provider(cls) -> StabilityImageProvider:
+        """Optional/legacy access to Stability AI provider."""
         if cls._stability_provider is None:
             cls._stability_provider = StabilityImageProvider()
         return cls._stability_provider
 
-    @classmethod
-    def get_local_enhancer(cls) -> ComfyUIProvider:
-        """Returns ComfyUI provider for optional local enhancements."""
-        if cls._comfyui_provider is None:
-            cls._comfyui_provider = ComfyUIProvider()
-        return cls._comfyui_provider

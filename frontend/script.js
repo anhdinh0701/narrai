@@ -1495,10 +1495,9 @@ async function loadStabilityConfig() {
             }
         }
 
-        const stabText = stabEnabled ? "Stability AI: Sẵn sàng" : "Stability AI: Tắt";
         const statusEl = document.getElementById('enhancementStatusText');
         if (statusEl) {
-            statusEl.innerText = `${comfyText} | ${stabText}`;
+            statusEl.innerText = `${comfyText} | Groq Prompt Orchestrator: Sẵn sàng`;
         }
     } catch (err) {
         console.warn("Could not fetch pipeline config:", err);
@@ -2053,7 +2052,7 @@ function renderProComicPanel(p, index, container) {
     regenBtn.type = 'button';
     regenBtn.className = 'manga-tool-btn';
     regenBtn.innerHTML = '🎨 Thử lại';
-    regenBtn.title = 'Tạo lại khung tranh qua Stability AI';
+    regenBtn.title = 'Tạo lại khung tranh qua ComfyUI';
     regenBtn.onclick = (e) => { e.stopPropagation(); retryPanel(p.id); };
     tools.appendChild(regenBtn);
 
