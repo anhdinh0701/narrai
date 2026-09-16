@@ -178,22 +178,25 @@ textarea::placeholder {
 }
 
 .primary-btn {
-    background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
-    color: #ffffff;
-    border: none;
+    background: rgba(0, 0, 0, 0.60) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.20) !important;
     padding: 14px 30px;
     font-size: 1.05em;
     border-radius: 8px;
     cursor: pointer;
-    transition: 0.2s;
+    transition: all 0.2s ease;
     width: 100%;
     font-weight: bold;
-    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 .primary-btn:hover {
-    background: linear-gradient(135deg, #1d4ed8 0%, #0369a1 100%);
+    background: rgba(255, 255, 255, 0.14) !important;
+    border-color: rgba(255, 255, 255, 0.40) !important;
     transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(14, 165, 233, 0.5);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
 
 .secondary-btn {
@@ -212,14 +215,14 @@ textarea::placeholder {
     border-color: #ffffff;
 }
 
-/* AI Chat box Phase 2 (Khung hiện chữ - Màu trắng đục đồng bộ) */
+/* AI Chat box Phase 2 (Khung hiện chữ - Màu tối mờ đồng bộ) */
 .chat-box {
-    border: 1px solid rgba(255, 255, 255, 0.26);
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
     border-radius: 12px;
     padding: 20px;
     height: 400px;
     overflow-y: auto;
-    background: rgba(255, 255, 255, 0.14);
+    background: rgba(0, 0, 0, 0.60) !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     margin-bottom: 15px;
@@ -236,17 +239,18 @@ textarea::placeholder {
     color: #ffffff;
 }
 .chat-user {
-    background: linear-gradient(135deg, #2563eb, #0284c7);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     color: #ffffff;
     align-self: flex-end;
     border-bottom-right-radius: 4px;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 .chat-ai {
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.50);
     color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    border-left: 3px solid #F59E0B;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-left: 3px solid rgba(255, 255, 255, 0.45);
     align-self: flex-start;
     border-bottom-left-radius: 4px;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
@@ -263,34 +267,42 @@ textarea::placeholder {
     height: 60px;
 }
 .send-btn {
-    background: linear-gradient(135deg, #2563eb, #0284c7);
-    color: white;
-    border: none;
+    background: rgba(0, 0, 0, 0.60) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
     padding: 0 25px;
     border-radius: 8px;
     cursor: pointer;
     font-weight: bold;
-    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     transition: all 0.2s ease;
 }
 .send-btn:hover {
+    background: rgba(255, 255, 255, 0.14) !important;
+    border-color: rgba(255, 255, 255, 0.40) !important;
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.5);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
 .skip-btn {
-    background: rgba(239, 68, 68, 0.12);
-    color: #f87171;
-    border: 1px solid #ef4444;
+    background: rgba(0, 0, 0, 0.60) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
     padding: 10px 20px;
     border-radius: 8px;
     cursor: pointer;
     width: 100%;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     transition: all 0.2s ease;
 }
 .skip-btn:hover { 
-    background: rgba(239, 68, 68, 0.25);
-    color: #ffffff;
+    background: rgba(255, 255, 255, 0.14) !important;
+    border-color: rgba(255, 255, 255, 0.40) !important;
+    color: #ffffff !important;
 }
 
 /* Trending & Genre Sections (Khung viết thể loại - Màu đen mờ) */
@@ -514,13 +526,13 @@ textarea::placeholder {
     font-size: 0.95em;
 }
 .control-group label span {
-    color: #F59E0B;
+    color: #ffffff;
 }
 .pro-slider {
     -webkit-appearance: none;
     width: 100%;
     height: 6px;
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.20);
     border-radius: 5px;
     outline: none;
 }
@@ -530,13 +542,15 @@ textarea::placeholder {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
+    background: #ffffff;
+    border: 2px solid rgba(0, 0, 0, 0.6);
     cursor: pointer;
     transition: 0.2s;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.5);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 .pro-slider::-webkit-slider-thumb:hover {
     transform: scale(1.15);
+    background: #f8fafc;
 }
 
 /* Length selector */
@@ -1044,7 +1058,7 @@ textarea::placeholder {
 .ai-quote {
     font-style: italic;
     color: #ffffff;
-    border-left: 3px solid #F59E0B;
+    border-left: 3px solid rgba(255, 255, 255, 0.45);
     padding-left: 10px;
     margin-bottom: 12px;
     font-size: 0.9em;
@@ -1164,18 +1178,19 @@ textarea::placeholder {
 }
 
 .chat-user {
-    background: linear-gradient(135deg, rgba(79, 70, 229, 0.92) 0%, rgba(2, 132, 199, 0.92) 100%);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     color: #ffffff;
     align-self: flex-end;
     border-bottom-right-radius: 3px;
-    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
 .chat-ai {
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.50);
     color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    border-left: 3px solid #F59E0B;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-left: 3px solid rgba(255, 255, 255, 0.45);
     align-self: flex-start;
     border-bottom-left-radius: 3px;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
