@@ -1182,45 +1182,85 @@ textarea::placeholder {
 .chat-input-area textarea {
     flex: 1;
     margin-bottom: 0;
-    height: 58px;
-    background: rgba(0, 0, 0, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    height: 56px;
+    background: rgba(0, 0, 0, 0.60);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 8px;
     color: #ffffff;
     padding: 10px 12px;
     font-family: inherit;
     font-size: 0.92em;
     resize: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: all 0.2s ease;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .chat-input-area textarea:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 0 14px rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.75);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.15);
 }
 
 .chat-input-area textarea::placeholder {
-    color: rgba(255, 255, 255, 0.55);
+    color: rgba(255, 255, 255, 0.45);
 }
 
 .send-btn {
-    background: linear-gradient(135deg, #2563eb, #38bdf8);
-    color: white;
-    border: none;
+    background: rgba(0, 0, 0, 0.60);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.16);
     padding: 0 20px;
     border-radius: 8px;
     cursor: pointer;
-    font-weight: bold;
-    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
-    transition: transform 0.2s, box-shadow 0.2s;
+    font-weight: 700;
+    font-size: 0.92em;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    transition: all 0.2s ease;
 }
 
 .send-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.20);
     transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.55);
+}
+
+/* Nút hành động nhanh đồng bộ 1 màu với khung gõ lệnh và nút gửi */
+.story-action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.story-action-buttons button,
+.action-flow-btn {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.60) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    border-radius: 8px !important;
+    padding: 10px 12px !important;
+    font-size: 0.86em !important;
+    font-weight: 700 !important;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.story-action-buttons button:hover,
+.action-flow-btn:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.20);
+    transform: translateY(-1px);
 }
 
 /* AI Thinking Indicator */
