@@ -77,23 +77,28 @@ body, body.workspace-mode {
     width: 100%;
     text-align: left;
     padding: 12px 15px;
-    background: transparent;
-    color: #94a3b8;
-    border: none;
+    background: rgba(0, 0, 0, 0.40);
+    color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 8px;
     cursor: pointer;
     font-size: 0.95em;
-    transition: 0.2s;
+    font-weight: 600;
+    transition: all 0.2s ease;
     margin-bottom: 8px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 .nav-btn:hover {
-    background: rgba(30, 41, 59, 0.7);
-    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
 }
 .nav-btn.active {
-    background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
-    color: white;
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+    background: rgba(0, 0, 0, 0.60) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.24) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 .sidebar-footer {
     padding: 15px;
@@ -987,10 +992,10 @@ textarea::placeholder {
     background: transparent;
 }
 
-/* Welcome Card (Khung hiện chữ - Màu trắng đục) */
+/* Welcome Card (Khung hiện chữ - Màu tối mờ đồng bộ) */
 .ai-welcome {
-    background: rgba(255, 255, 255, 0.14);
-    border: 1px solid rgba(255, 255, 255, 0.24);
+    background: rgba(0, 0, 0, 0.60) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
     color: #ffffff;
     padding: 12px 15px;
     border-radius: 10px;
@@ -1014,10 +1019,10 @@ textarea::placeholder {
     color: #F59E0B;
 }
 
-/* AI Quote & Custom Edit Cards (Khung hiện chữ - Màu trắng đục) */
+/* AI Quote & Custom Edit Cards (Khung hiện chữ - Màu tối mờ đồng bộ) */
 .ai-card {
-    background: rgba(255, 255, 255, 0.13);
-    border: 1px solid rgba(255, 255, 255, 0.24);
+    background: rgba(0, 0, 0, 0.60) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
     border-radius: 10px;
     padding: 14px;
     margin-top: 10px;
@@ -1043,7 +1048,7 @@ textarea::placeholder {
     padding-left: 10px;
     margin-bottom: 12px;
     font-size: 0.9em;
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.45);
     padding: 8px 10px;
     border-radius: 0 6px 6px 0;
 }
@@ -1069,22 +1074,26 @@ textarea::placeholder {
 }
 
 .ai-action-btn {
-    background: linear-gradient(135deg, #4f46e5, #0284c7);
-    color: white;
-    border: none;
+    background: rgba(0, 0, 0, 0.60) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
     padding: 10px;
     width: 100%;
     border-radius: 6px;
     cursor: pointer;
     font-weight: 600;
     font-size: 0.9em;
-    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
-    transition: transform 0.2s, box-shadow 0.2s;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
 .ai-action-btn:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.20);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.45);
 }
 
 .ai-result-text {
@@ -1127,14 +1136,14 @@ textarea::placeholder {
     font-weight: 600;
 }
 
-/* Chat History & Chat Box (Khung hiện chữ - Màu trắng đục đồng bộ) */
+/* Chat History & Chat Box (Khung chat - Màu tối mờ đồng bộ) */
 .chat-box {
-    border: 1px solid rgba(255, 255, 255, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
     border-radius: 12px;
     padding: 14px;
     height: 380px;
     overflow-y: auto;
-    background: rgba(255, 255, 255, 0.13);
+    background: rgba(0, 0, 0, 0.60) !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     margin-bottom: 12px;
@@ -1451,19 +1460,58 @@ textarea::placeholder {
 }
 
 /* Auth Styles */
-.sidebar-user { padding: 15px 20px; border-bottom: 1px solid #374151; }
-#welcomeUser { color: #D1D5DB; margin-bottom: 10px; font-weight: bold; }
-.auth-btn { background: #4F46E5; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em; width: 100%; }
-.auth-btn:hover { background: #4338CA; }
+.sidebar-user { padding: 15px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.10); }
+#welcomeUser { color: #ffffff; margin-bottom: 10px; font-weight: bold; }
+.auth-btn {
+    background: rgba(0, 0, 0, 0.60) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    padding: 8px 14px !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+    font-size: 0.88em !important;
+    font-weight: 600 !important;
+    width: 100%;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    transition: all 0.2s ease;
+}
+.auth-btn:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.20);
+    transform: translateY(-1px);
+}
 .auth-content { max-width: 400px; }
 .auth-form { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
 .auth-form input { padding: 12px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 1em; }
 .auth-form input:focus { border-color: #4F46E5; outline: none; }
 
 /* Language Switcher */
-.lang-switcher { padding: 15px; border-top: 1px solid #374151; display: flex; gap: 10px; justify-content: center; }
-.lang-btn { background: transparent; border: 1px solid #6B7280; color: #9CA3AF; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; flex: 1; }
-.lang-btn.active { background: #4F46E5; color: white; border-color: #4F46E5; }
+.lang-switcher { padding: 15px; border-top: 1px solid rgba(255, 255, 255, 0.10); display: flex; gap: 10px; justify-content: center; }
+.lang-btn {
+    background: rgba(0, 0, 0, 0.40);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #94a3b8;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8em;
+    font-weight: 600;
+    flex: 1;
+    transition: all 0.2s ease;
+}
+.lang-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+.lang-btn.active {
+    background: rgba(0, 0, 0, 0.60) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.24) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
 
 /* LANDING PAGE STYLES (Cinematic Manga Glassmorphism) */
 #landingContainer {
