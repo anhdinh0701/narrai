@@ -786,13 +786,13 @@ def create_comic_job(
             user_id = first_user.id
 
     effective_text = (request.story_text or "").strip()
-    if not effective_text or len(effective_text) < 5:
+    if not effective_text or len(effective_text) < 10:
         if request.story_id:
             s_rec = db.query(Story).filter(Story.id == request.story_id).first()
             if s_rec and s_rec.story_content:
                 effective_text = s_rec.story_content
-        if not effective_text:
-            effective_text = "Một câu chuyện hành động kịch tính và hào hùng, nhân vật chính bước lên đỉnh cao võ học."
+        if not effective_text or len(effective_text) < 10:
+            raise HTTPException(status_code=400, detail="Vui lòng cung cấp nội dung câu chuyện chữ để chuyển thể sang truyện tranh.")
 
     job_id = f"job_{uuid.uuid4().hex[:16]}"
     job = ComicJob(
@@ -1029,13 +1029,13 @@ def create_comic(request: ComicRequest, db: Session = Depends(get_db), current_u
             user_id = first_user.id
 
     effective_text = (request.story_text or "").strip()
-    if not effective_text or len(effective_text) < 5:
+    if not effective_text or len(effective_text) < 10:
         if request.story_id:
             s_rec = db.query(Story).filter(Story.id == request.story_id).first()
             if s_rec and s_rec.story_content:
                 effective_text = s_rec.story_content
-        if not effective_text:
-            effective_text = "Một câu chuyện hành động kịch tính và hào hùng, nhân vật chính bước lên con đường chinh phục đỉnh cao võ học giữa bão tố mây mù."
+        if not effective_text or len(effective_text) < 10:
+            raise HTTPException(status_code=400, detail="Vui lòng cung cấp nội dung câu chuyện chữ để chuyển thể sang truyện tranh.")
 
     # 1. Parse text to JSON panels using LLM
     from agents.comic_agent import ComicDirectorAgent
@@ -1146,13 +1146,13 @@ def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), cu
             user_id = first_user.id
 
     effective_text = (request.story_text or "").strip()
-    if not effective_text or len(effective_text) < 5:
+    if not effective_text or len(effective_text) < 10:
         if request.story_id:
             s_rec = db.query(Story).filter(Story.id == request.story_id).first()
             if s_rec and s_rec.story_content:
                 effective_text = s_rec.story_content
-        if not effective_text:
-            effective_text = "Mot cau chuyen hanh dong kich tinh va hao hung, nhan vat chinh buoc len dinh cao."
+        if not effective_text or len(effective_text) < 10:
+            raise HTTPException(status_code=400, detail="Vui lòng cung cấp nội dung câu chuyện chữ để chuyển thể sang truyện tranh.")
 
     # Step 1: Generate Character Bible + Panel Plan
     from agents.pro_comic_agent import ProComicAgent
@@ -1163,19 +1163,15 @@ def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), cu
         style=request.style or ""
     )
 
-    character_bible = script_data.get("character_bible", [])
-    story_setting = script_data.get("story_setting", "")
-    panels_plan = script_data.get("panels", [])
-
     # Step 2: Save Comic to DB
     character_bible = script_data.get("character_bible", [])
     location_bible = script_data.get("location_bible", [])
     story_setting = script_data.get("story_setting", "")
     panels_plan = script_data.get("panels", [])
 
-    # Target 12 to 20 panels for a rich, complete comic chapter (allow up to 20)
-    if len(panels_plan) > 20:
-        panels_plan = panels_plan[:20]
+    # Target 8 to 12 panels for optimal storytelling and GPU generation
+    if len(panels_plan) > 12:
+        panels_plan = panels_plan[:12]
 
     comic = Comic(
         user_id=user_id,

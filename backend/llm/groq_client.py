@@ -3,8 +3,8 @@ import os
 import time
 
 class GroqClient:
-    # Leave headroom below Groq's 8000 TPM limit for estimation variance.
-    MAX_REQUEST_TOKENS = 7600
+    # Modern Groq models support large context windows; keep safe headroom.
+    MAX_REQUEST_TOKENS = 16000
     MIN_COMPLETION_TOKENS = 256
 
     @staticmethod
@@ -22,12 +22,17 @@ class GroqClient:
 
     @staticmethod
     def _is_request_too_large(error):
-        message = str(error)
-        return "413" in message or "rate_limit_exceeded" in message or "Request too large" in message
+        message = str(error).lower()
+        return "413" in message or "request too large" in message
+
+    @staticmethod
+    def _is_rate_limited(error):
+        message = str(error).lower()
+        return "429" in message or "rate_limit" in message or "rate limit" in message or "tpm" in message
 
     @staticmethod
     def _retry_budgets(initial):
-        budgets = [initial, max(256, int(initial * 0.75)), max(256, int(initial * 0.5))]
+        budgets = [initial, max(512, int(initial * 0.75)), max(256, int(initial * 0.5))]
         return list(dict.fromkeys(budgets))
 
     def __init__(self, model_name: str = "openai/gpt-oss-120b", api_key: str = None):
@@ -39,7 +44,7 @@ class GroqClient:
         self.model = model_name
     
     def chat(self, messages, temperature=0.7, max_tokens=2000, response_format=None):
-        """Send message to Groq LLM"""
+        """Send message to Groq LLM with rate limit backoff and token budget scaling"""
         safe_max_tokens = self._safe_max_tokens(messages, max_tokens)
         budgets = self._retry_budgets(safe_max_tokens)
         last_error = None
@@ -52,14 +57,20 @@ class GroqClient:
             }
             if response_format:
                 params["response_format"] = response_format
-            try:
-                response = self.client.chat.completions.create(**params)
-                return response.choices[0].message.content
-            except Exception as error:
-                last_error = error
-                if not self._is_request_too_large(error) or index == len(budgets) - 1:
+            
+            for attempt in range(3):
+                try:
+                    response = self.client.chat.completions.create(**params)
+                    return response.choices[0].message.content
+                except Exception as error:
+                    last_error = error
+                    if self._is_rate_limited(error) and attempt < 2:
+                        time.sleep(3.0 * (attempt + 1))
+                        continue
+                    if self._is_request_too_large(error):
+                        break
                     raise
-                time.sleep(0.25)
+            time.sleep(0.5)
         raise last_error
 
     def chat_stream(self, messages, temperature=0.7, max_tokens=2000):

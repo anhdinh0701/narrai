@@ -2462,11 +2462,12 @@ function renderStoryboardAct(act, actIndex, grid) {
 
 async function adaptToComic() {
     let text = document.getElementById('storyOutput')?.innerText?.trim() || "";
-    if (!text || text.length < 10) {
+    if (!text || text.length < 15) {
         text = document.getElementById('initialPrompt')?.value?.trim() || "";
     }
-    if (!text || text.length < 5) {
-        text = "Một câu chuyện hành động kịch tính và hào hùng, nhân vật chính bước lên con đường chinh phục đỉnh cao giữa giang hồ hiểm ác.";
+    if (!text || text.length < 15) {
+        alert("Vui lòng nhập hoặc sáng tác câu chuyện chữ trước khi chuyển thể thành truyện tranh!");
+        return;
     }
 
     document.getElementById('editorView').style.display = 'none';

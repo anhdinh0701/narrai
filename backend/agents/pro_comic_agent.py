@@ -12,90 +12,85 @@ except (ImportError, ModuleNotFoundError):
 logger = logging.getLogger(__name__)
 
 PRIMARY_MODEL = "openai/gpt-oss-120b"
-FALLBACK_MODEL = "qwen/qwen3.8-27b"
+FALLBACK_MODEL_1 = "qwen/qwen3.8-27b"
+FALLBACK_MODEL_2 = "openai/gpt-oss-20b"
 
-PRO_COMIC_SYSTEM_PROMPT = """Bạn là Đạo diễn Truyện tranh & Chuyên gia Điều phối Prompt ComfyUI / AI Generation cấp cao (Comic Director, Storyboard Master & ComfyUI Prompt Orchestrator).
+PRO_COMIC_SYSTEM_PROMPT = """Bạn là Đạo diễn Truyện tranh & Chuyên gia Điều phối Prompt ComfyUI cấp cao (Comic Director, Storyboard Master & ComfyUI Prompt Orchestrator).
 
 NHIỆM VỤ TỐI THƯỢNG:
-Chuyển thể cốt truyện tiếng Việt thành kịch bản phân cảnh 12 ĐẾN 20 KHUNG TRANH (Panels) hoàn chỉnh (khuyến nghị 16 đến 20 khung tranh để câu chuyện phát triển sâu sắc, chi tiết, giàu cảm xúc), liền mạch 100%, bám sát diễn biến câu chuyện, đồng thời điều phối prompt chuyên biệt cho mô hình ComfyUI SDXL Anime Webtoon (Animagine XL) để tranh sinh ra chuẩn xác từng chi tiết, không bị đứt đoạn, nhân vật nhất quán và lời thoại ăn khớp nhịp nhàng.
+Chuyển thể câu chuyện tiếng Việt được người dùng cung cấp thành kịch bản phân cảnh 8 ĐẾN 12 KHUNG TRANH (khuyến nghị 8 đến 10 khung tranh, tối đa 12) hoàn chỉnh, liền mạch 100%, bám sát tuyệt đối từng tình tiết, nhân vật và lời thoại trong truyện chữ. Đồng thời điều phối prompt chuyên biệt cho ComfyUI SDXL Anime (Animagine XL) để tạo hình nhân vật đồng nhất và chuẩn xác.
 
 NGUYÊN TẮC BẮT BUỘC ĐẠO DIỄN:
-1. PHÂN CẢNH 4 HỒI MẠCH LẠC (STORY PROGRESSION - 12 ĐẾN 20 PANELS):
-   - Hồi 1 (Khởi nguồn & Thiết lập - Khung 1 đến 4): Đại cảnh thiết lập thế giới, giới thiệu nhân vật chính và mục tiêu cốt lõi, biến cố kích hoạt đưa nhân vật vào hành trình.
-   - Hồi 2 (Phát triển & Cạm bẫy - Khung 5 đến 9): Dấn thân vào thử thách, đối đầu chướng ngại vật/quái vật/kẻ địch sơ khởi, hé lộ bí mật hoặc gặp gỡ đồng đội.
-   - Hồi 3 (Cao trào kịch tính & Bùng nổ - Khung 10 đến 15): Đối mặt nguy hiểm đỉnh điểm, thế trận ngàn cân treo sợi tóc, nhân vật dồn toàn lực thức tỉnh sức mạnh/tuyệt kỹ, cận cảnh biểu cảm căng thẳng tột cùng.
-   - Hồi 4 (Hóa giải, Chiến thắng & Tương lai - Khung 16 đến 20): Đòn kết liễu hoặc giải thoát phong ấn, thu hoạch thành quả/bảo vật, niềm vui sum họp chiến thắng, đại cảnh kết màn hướng về chân trời mới rộng mở.
+1. TRUNG THỰC TUYỆT ĐỐI VỚI NỘI DUNG TRUYỆN CHỮ CỦA NGƯỜI DÙNG:
+   - Nghiêm cấm tự ý đổi thể loại! Nếu truyện chữ là đời thường, tập gym, công sở, tình cảm -> Giữ nguyên 100% đời thường, tập gym, công sở, tình cảm. Nếu truyện là kiếm hiệp, khoa học viễn tưởng -> Giữ nguyên kiếm hiệp, khoa học viễn tưởng.
+   - Nhân vật: Trích xuất chính xác tên nhân vật có trong câu chuyện (VD: Hoàng Nam, Lan, Tuấn, Thầy giáo, Sếp...). Tuyệt đối không tự ý thay thế bằng tên lạ hay tên mẫu như "Nguyễn Minh", "Linh Nhi" trừ khi chính người dùng đặt tên đó.
+   - Trang phục & Ngoại hình: Phải phản ánh đúng nghề nghiệp, hoàn cảnh của truyện (VD: tập gym -> áo thể thao, quần short, bao tay tạ; văn phòng -> sơ mi, quần tây; trường học -> đồng phục học sinh).
 
-2. BẢNG THIẾT KẾ NHÂN VẬT BẤT BIẾN (CHARACTER BIBLE):
-   - Mỗi nhân vật có ID riêng (CHAR_001, CHAR_002), tên tiếng Việt, tuổi, tính cách.
-   - Ngoại hình chi tiết (tóc, mắt, khuôn mặt, vóc dáng, vết sẹo/đặc điểm nhận dạng).
-   - Trang phục đặc trưng cố định (màu sắc chiến bào, thắt lưng, găng tay, ngọc bội, vũ khí).
-   - comfy_tags: Tập hợp từ khóa tiếng Anh đặc tả nhân vật dạng Booru/Danbooru + Natural prompt cho ComfyUI (VD: `CHAR_001, 1boy, athletic lean build, short spiky black hair, sharp dark blue eyes, small scar on left cheek, dark navy blue martial arts combat robe, silver dragon embroidery, black leather bracers, holding glowing silver sword`).
+2. PHÂN CẢNH 4 HỒI MẠCH LẠC (8 ĐẾN 12 KHUNG TRANH):
+   - Hồi 1 (Mở đầu - Khung 1-2): Giới thiệu nhân vật chính trong hoàn cảnh mở màn của câu chuyện.
+   - Hồi 2 (Diễn biến - Khung 3-5): Các hoạt động chính, thử thách, tương tác giữa các nhân vật.
+   - Hồi 3 (Cao trào - Khung 6-8): Khoảnh khắc kịch tính, nỗ lực hết mình, bùng nổ năng lượng hoặc bước ngoặt.
+   - Hồi 4 (Kết thúc - Khung 9-10 hoặc 11-12): Thành quả đạt được, cảm xúc lắng đọng, mở ra tương lai.
 
-3. BẢNG THIẾT KẾ BỐI CẢNH (LOCATION BIBLE):
-   - ID bối cảnh (LOC_001, LOC_002), tên tiếng Việt, kiến trúc, ánh sáng, bầu không khí.
-   - comfy_tags: Từ khóa tiếng Anh mô tả bối cảnh cho ComfyUI (VD: `LOC_001, ancient mountain cliff summit above sea of clouds, floating ancient stone ruins, radiant golden sunrise rays breaking through purple morning mist, ethereal fantasy world, vibrant colors`).
+3. LỜI THOẠI & LỜI DẪN TỪ TRUYỆN:
+   - speaker: Tên nhân vật nói (hoặc "Người dẫn truyện").
+   - dialogue: Câu thoại hoặc suy nghĩ tiếng Việt, lấy trực tiếp hoặc bám sát câu thoại/suy nghĩ trong truyện.
+   - bubble_type: "speech" (nói) | "shout" (hét/hào hứng) | "thought" (suy nghĩ) | "whisper" (thì thầm) | "narration" (dẫn) | "none".
+   - narration: Câu văn dẫn truyện tiếng Việt tóm lược diễn biến từ câu chuyện gốc.
 
-4. ĐỒNG NHẤT TUYỆT ĐỐI GIỮA CÁC KHUNG TRANH (CONTINUITY):
-   - Mỗi khung tranh PHẢI ghi rõ `previous_panel_summary` (tóm tắt logic kết nối từ khung trước) và `continuity_rules` (kiểm tra trang phục, vũ khí, vị trí nhân vật không bị lệch).
+4. BẢNG THIẾT KẾ NHÂN VẬT & BỐI CẢNH (CHARACTER & LOCATION BIBLE):
+   - Character Bible: ID (CHAR_001...), tên tiếng Việt, tuổi, ngoại hình tiếng Anh, trang phục tiếng Anh, comfy_tags tiếng Anh chuẩn Booru/Anime (VD: `CHAR_001, 1boy, handsome athletic build, short black hair, focused dark eyes, black athletic gym tank top, grey gym shorts, wrist wraps`).
+   - Location Bible: ID (LOC_001...), tên tiếng Việt, architecture, lighting, comfy_tags tiếng Anh (VD: `LOC_001, modern fitness gym interior, weight racks, rows of dumbbells, treadmill machines, bright led ceiling lights, polished wooden floor`).
 
-5. LỜI THOẠI & DẪN TRUYỆN SẮC SẢO:
-   - `speaker`: Người nói (hoặc "Người dẫn truyện").
-   - `dialogue`: Lời thoại tiếng Việt giàu cảm xúc, tự nhiên, thể hiện rõ thần thái nhân vật.
-   - `bubble_type`: "speech" (nói) | "shout" (hét/ra chiêu) | "thought" (suy nghĩ) | "whisper" (thì thầm) | "narration" (lời dẫn) | "none".
-   - `narration`: Lời dẫn truyện tiếng Việt tăng chiều sâu văn học.
+5. ĐIỀU PHỐI PROMPT COMFYUI (ANIMAGINE XL):
+   - comfy_prompt: Prompt tiếng Anh tinh gọn, chuẩn Danbooru (< 80 từ), KHÔNG chứa chữ (no text, no speech bubbles), KHÔNG chia đôi khung ảnh:
+     `masterpiece, best quality, vibrant full color anime webtoon art, [camera angle], [character tags & outfit], [specific action & expression], [location tags & lighting], dynamic atmospheric lighting, 8k digital illustration, highly detailed, no text, no watermark, no speech bubbles`
 
-6. ĐIỀU PHỐI PROMPT COMFYUI CHUYÊN SÂU (COMFYUI PROMPT ORCHESTRATION):
-   - `comfy_prompt`: Prompt tiếng Anh được cấu trúc chuẩn mực cho ComfyUI:
-     `masterpiece, best quality, vibrant full color anime webtoon art, [camera angle], [character comfy_tags], [specific physical action & facial expression], [location comfy_tags & lighting], dynamic atmospheric lighting, 8k digital illustration, highly detailed, no text, no watermark, no speech bubbles`
-   - TUYỆT ĐỐI KHÔNG chứa chữ (text, letters), bong bóng thoại, hay chia đôi khung ảnh (split screen). Frontend sẽ tự động vẽ bong bóng thoại HTML/CSS đè lên tranh!
-
-OUTPUT FORMAT (STRICT JSON ONLY, không bọc ```json, không thêm chữ dẫn giải trước hoặc sau):
+OUTPUT FORMAT (STRICT JSON ONLY, không bọc ```json, không thêm chữ dẫn giải trước/sau):
 {
   "character_bible": [
     {
       "char_id": "CHAR_001",
-      "name": "Nguyễn Minh",
-      "gender": "male",
-      "age": "20",
-      "appearance": "handsome young man, short spiky jet-black hair, sharp deep blue eyes, athletic build, scar on left cheek",
-      "costume": "dark navy martial arts combat robe with silver dragon embroidery, black leather belt, fingerless bracers",
-      "personality": "kiên định, dũng cảm, trọng nghĩa khí",
-      "comfy_tags": "CHAR_001, 1boy, handsome young hero, short spiky jet-black hair, sharp deep blue eyes, small scar on left cheek, dark navy martial arts robe with silver dragon embroidery, athletic build, vibrant full color anime webtoon art"
+      "name": "Tên nhân vật từ truyện",
+      "gender": "male hoặc female",
+      "age": "tuổi ước tính",
+      "appearance": "short black hair, athletic build, sharp eyes",
+      "costume": "trang phục phù hợp câu chuyện",
+      "personality": "tính cách",
+      "comfy_tags": "CHAR_001, 1boy (hoặc 1girl), [chi tiết ngoại hình], [trang phục], vibrant full color anime webtoon art"
     }
   ],
   "location_bible": [
     {
       "loc_id": "LOC_001",
-      "name": "Đỉnh núi Vân Phong",
-      "architecture": "ancient celestial mountain peak with floating stone monoliths",
-      "lighting": "golden dawn sunlight breaking through purple misty clouds",
-      "atmosphere": "mystic, epic, breathtaking, ethereal atmosphere",
-      "comfy_tags": "LOC_001, ancient mountain cliff summit above sea of clouds, floating ancient stone ruins, radiant golden sunrise rays breaking through purple morning mist, ethereal fantasy world, vibrant colors"
+      "name": "Tên bối cảnh từ truyện",
+      "architecture": "kiến trúc bối cảnh",
+      "lighting": "ánh sáng",
+      "atmosphere": "không khí",
+      "comfy_tags": "LOC_001, [từ khóa bối cảnh tiếng Anh]"
     }
   ],
-  "story_setting": "Thế giới huyền huyễn tu tiên nơi đan xen giữa bí ẩn thượng cổ và chí khí anh hùng.",
+  "story_setting": "Tóm tắt bối cảnh thế giới bám sát truyện của người dùng",
   "negative_prompt": "text, watermark, speech bubbles, letters, comic panel border, split screen, monochrome, grayscale, sketch, lowres, bad anatomy, bad hands, missing fingers, extra fingers, deformed limbs, blurry, mutation, duplicate, ugly, cropped, worst quality, out of frame",
   "panels": [
     {
       "panel_index": 1,
       "scene_id": "S01",
       "location_id": "LOC_001",
-      "location_name": "Đỉnh núi Vân Phong lúc bình minh",
-      "time_of_day": "dawn",
-      "weather": "misty sunrise",
+      "location_name": "Tên bối cảnh",
+      "time_of_day": "day hoặc night",
+      "weather": "clear",
       "characters": ["CHAR_001"],
-      "character_names": "Nguyễn Minh",
-      "action": "Nguyễn Minh đứng trên mỏm đá ngắm nhìn ngôi đền bay thượng cổ lấp lánh giữa biển mây",
-      "emotion": "kinh ngạc, xúc động",
-      "camera_angle": "cinematic wide angle low shot",
-      "continuity_rules": "Nguyễn Minh mặc chiến bào xanh đen thêu rồng bạc, tóc đen ngắn bay nhẹ trong gió sớm.",
-      "speaker": "Nguyễn Minh",
-      "dialogue": "Cuối cùng ta cũng đã tìm thấy Đền Thượng Cổ...",
+      "character_names": "Tên nhân vật",
+      "action": "Mô tả hành động tiếng Việt",
+      "emotion": "Cảm xúc nhân vật",
+      "camera_angle": "cinematic wide angle shot hoặc medium shot",
+      "speaker": "Tên nhân vật",
+      "dialogue": "Lời thoại hoặc suy nghĩ tiếng Việt",
       "bubble_type": "speech",
-      "narration": "Sau ba ngày ba đêm vượt biển mây hiểm trở, cánh cửa định mệnh đã hiện ra trước mắt.",
-      "layout_type": "wide",
-      "comfy_prompt": "masterpiece, best quality, vibrant full color anime webtoon art, cinematic wide angle low shot, CHAR_001 handsome young hero, short spiky jet-black hair, sharp dark blue eyes, dark navy martial arts robe with silver trims, standing heroically on jagged mountain cliff edge at dawn looking toward massive floating ancient celestial temple in golden clouds, breathtaking sunrise lighting, vibrant colors, 8k digital illustration, no text, no speech bubbles"
+      "narration": "Lời dẫn chuyện tiếng Việt bám sát truyện",
+      "layout_type": "square",
+      "comfy_prompt": "masterpiece, best quality, vibrant full color anime webtoon art, [camera], [character tags & action], [location & lighting], 8k, no text, no speech bubbles"
     }
   ]
 }
@@ -109,20 +104,25 @@ class ProComicAgent:
         self.api_key = api_key
         self.llm = GroqClient(model_name=PRIMARY_MODEL, api_key=api_key)
         try:
-            self.fallback_llm = GroqClient(model_name=FALLBACK_MODEL, api_key=api_key)
+            self.fallback_llm = GroqClient(model_name=FALLBACK_MODEL_1, api_key=api_key)
         except Exception:
-            self.fallback_llm = self.llm
+            self.fallback_llm = None
+        try:
+            self.tertiary_llm = GroqClient(model_name=FALLBACK_MODEL_2, api_key=api_key)
+        except Exception:
+            self.tertiary_llm = None
 
     def generate(self, story_text: str, genre: str = "", style: str = "") -> Dict[str, Any]:
-        trimmed = (story_text or "").strip()[:6000]
-        if not trimmed:
-            trimmed = "Một chàng trai trẻ tu tiên dũng cảm bước vào di tích thượng cổ, tìm kiếm bảo vật giải cứu sư môn."
+        trimmed = (story_text or "").strip()[:7000]
+        if not trimmed or len(trimmed) < 15:
+            logger.warning("[ProComicAgent] Story text too short, using dynamic fallback.")
+            return self._create_dynamic_fallback(story_text=story_text, genre=genre, style=style)
 
-        genre_hint = f"\nThể loại: {genre}" if genre else ""
+        genre_hint = f"\nThể loại mong muốn: {genre}" if genre else ""
         style_hint = f"\nPhong cách hội họa: {style}" if style else ""
         user_prompt = (
-            f"Hãy phân tích và chuyển thể câu chuyện sau thành kịch bản truyện tranh 12-20 khung tranh (khuyến nghị 16-20 khung tranh), "
-            f"điều phối Character Bible, Location Bible và ComfyUI prompt chi tiết cho từng khung tranh:{genre_hint}{style_hint}\n\n{trimmed}"
+            f"Hãy phân tích và chuyển thể câu chuyện sau thành kịch bản truyện tranh 8 ĐẾN 12 KHUNG TRANH (khuyến nghị 8 đến 10 khung tranh), "
+            f"bám sát 100% nhân vật, ngoại hình, nghề nghiệp, bối cảnh, lời thoại và diễn biến trong truyện chữ:{genre_hint}{style_hint}\n\n{trimmed}"
         )
 
         messages = [
@@ -130,13 +130,19 @@ class ProComicAgent:
             {"role": "user", "content": user_prompt}
         ]
 
-        # 1. Try Primary ChatGPT-Class Model (openai/gpt-oss-120b) with json_object mode
-        for client in (self.llm, self.fallback_llm):
+        # Model cascade: Primary (gpt-oss-120b) -> Fallback 1 (qwen3.8-27b) -> Fallback 2 (gpt-oss-20b)
+        clients = [self.llm]
+        if self.fallback_llm:
+            clients.append(self.fallback_llm)
+        if self.tertiary_llm:
+            clients.append(self.tertiary_llm)
+
+        for client in clients:
             try:
                 raw = client.chat(
                     messages=messages,
-                    temperature=0.5,
-                    max_tokens=8000,
+                    temperature=0.3,
+                    max_tokens=4000,
                     response_format={"type": "json_object"}
                 )
                 data = self._parse_or_repair_json(raw)
@@ -145,8 +151,8 @@ class ProComicAgent:
             except Exception as e:
                 logger.warning(f"[ProComicAgent] LLM {getattr(client, 'model', 'unknown')} failed: {e}")
 
-        logger.warning("[ProComicAgent] All LLMs failed or returned invalid JSON. Using structured 12-panel fallback.")
-        return self._get_fallback()
+        logger.warning("[ProComicAgent] All LLMs failed or returned invalid JSON. Using dynamic story-based fallback.")
+        return self._create_dynamic_fallback(story_text=trimmed, genre=genre, style=style)
 
     def _parse_or_repair_json(self, raw: str) -> Optional[Dict[str, Any]]:
         """Parses JSON or repairs truncated JSON response from LLM."""
@@ -253,25 +259,24 @@ class ProComicAgent:
             l_info = loc_map[loc_id]
             loc_prompt = l_info.get("comfy_tags") or l_info.get("base_prompt") or f"{l_info.get('architecture')}, {l_info.get('lighting')}"
 
-        # Orchestrated prompt handling: check comfy_prompt first, then image_prompt
-        raw_prompt = (panel.get("comfy_prompt") or panel.get("image_prompt") or "").strip()
         camera = panel.get("camera_angle", "cinematic medium shot")
-        action_en = panel.get("action", "")
+        raw_prompt = (panel.get("comfy_prompt") or panel.get("image_prompt") or "").strip()
 
-        # Base style tokens enforcing full-color webtoon/anime illustration without text
-        style_tokens = "masterpiece, best quality, vibrant full color anime manga illustration, detailed webtoon art, dynamic lighting, 8k digital painting, clean linework, no text, no watermark, no speech bubbles"
-        
-        assembled_parts = [style_tokens, camera]
-        if char_prompts:
-            assembled_parts.extend(char_prompts)
-        if raw_prompt and len(raw_prompt) > 20:
-            assembled_parts.append(raw_prompt)
-        elif action_en:
-            assembled_parts.append(f"character action: {action_en}")
-        if loc_prompt:
-            assembled_parts.append(f"background: {loc_prompt}")
-
-        final_prompt = ", ".join([p.strip().rstrip(",") for p in assembled_parts if p.strip()])
+        # Build clean prompt without duplicate tokens
+        if raw_prompt and "masterpiece" in raw_prompt.lower() and len(raw_prompt) > 40:
+            final_prompt = raw_prompt
+        else:
+            parts = ["masterpiece, best quality, vibrant full color anime webtoon art", camera]
+            if char_prompts:
+                parts.extend(char_prompts)
+            if raw_prompt:
+                parts.append(raw_prompt)
+            elif panel.get("action"):
+                parts.append(panel.get("action"))
+            if loc_prompt and loc_prompt not in " ".join(parts):
+                parts.append(loc_prompt)
+            parts.append("dynamic atmospheric lighting, 8k digital illustration, highly detailed, no text, no watermark, no speech bubbles")
+            final_prompt = ", ".join([p.strip().rstrip(",") for p in parts if p.strip()])
 
         default_negative = (
             root_negative.strip() if root_negative and root_negative.strip() else (
@@ -294,8 +299,6 @@ class ProComicAgent:
             "action": panel.get("action", "Nhân vật hành động"),
             "emotion": panel.get("emotion", "tập trung"),
             "camera_angle": camera,
-            "previous_panel_summary": panel.get("previous_panel_summary", ""),
-            "continuity_rules": panel.get("continuity_rules", ""),
             "speaker": panel.get("speaker", ""),
             "dialogue": panel.get("dialogue") or panel.get("dialogue_text") or "",
             "bubble_type": bubble_type,
@@ -307,303 +310,199 @@ class ProComicAgent:
             "negative_prompt": negative_prompt
         }
 
-    def _get_fallback(self) -> Dict[str, Any]:
-        """Rich 12-panel fallback ensuring coherent 3-act story, full-color prompts, and consistent characters."""
-        return {
-            "character_bible": [
-                {
-                    "char_id": "CHAR_001",
-                    "name": "Nguyễn Minh",
-                    "gender": "male",
-                    "age": "20",
-                    "appearance": "handsome young man, short spiky jet-black hair, sharp deep blue eyes, athletic build, scar on left cheek",
-                    "costume": "dark navy martial arts combat robe with silver dragon embroidery, black leather belt, fingerless bracers",
-                    "personality": "kiên định, dũng cảm, trọng nghĩa khí",
-                    "base_prompt": "CHAR_001, handsome young hero, short spiky jet-black hair, sharp deep blue eyes, small scar on left cheek, dark navy martial arts robe with silver dragon embroidery, athletic build, vibrant full color anime webtoon art"
-                },
-                {
-                    "char_id": "CHAR_002",
-                    "name": "Linh Nhi",
-                    "gender": "female",
-                    "age": "19",
-                    "appearance": "beautiful young anime woman, long flowing chestnut brown hair with jade lotus hairpin, radiant amber eyes, graceful expression",
-                    "costume": "elegant white and soft pink celestial hanfu dress, embroidered lotus patterns, flowing silk ribbons",
-                    "personality": "thông minh, nhanh nhẹn, tinh tế",
-                    "base_prompt": "CHAR_002, beautiful anime girl, long flowing chestnut brown hair with jade lotus hairpin, luminous amber eyes, elegant white and pastel pink celestial silk dress, gentle yet resolute look, vibrant full color anime webtoon art"
-                }
-            ],
-            "location_bible": [
-                {
-                    "loc_id": "LOC_001",
-                    "name": "Đỉnh núi Vân Phong",
-                    "architecture": "ancient celestial mountain cliff overlooking floating ruins",
-                    "lighting": "golden dawn sunlight through purple morning mist",
-                    "atmosphere": "ethereal, majestic, mystical",
-                    "base_prompt": "LOC_001, towering jagged mountain cliff edge, sea of swirling clouds below, ancient floating stone ruins, radiant golden sunrise rays, ethereal mystical fantasy atmosphere, vibrant colors"
-                },
-                {
-                    "loc_id": "LOC_002",
-                    "name": "Điện Thần Thượng Cổ",
-                    "architecture": "grand ancient palace hall with monumental glowing carved pillars",
-                    "lighting": "celestial starry glow and divine golden luminescence",
-                    "atmosphere": "sacred, awe-inspiring, cosmic",
-                    "base_prompt": "LOC_002, majestic ancient temple interior, towering marble pillars carved with glowing runes, celestial starlight and golden particles, divine sacred aura, vibrant colors"
-                }
-            ],
-            "story_setting": "Thế giới huyền huyễn nơi các bậc anh hùng tìm kiếm bí kíp thất truyền để bảo vệ thái bình lục địa.",
-            "panels": [
-                {
-                    "panel_index": 1,
-                    "scene_id": "S01",
-                    "location_id": "LOC_001",
-                    "location_name": "Đỉnh núi Vân Phong lúc bình minh",
-                    "time_of_day": "dawn",
-                    "weather": "misty golden sunrise",
-                    "characters": ["CHAR_001"],
-                    "character_names": "Nguyễn Minh",
-                    "action": "Đứng bên bờ vực ngắm ngôi đền bay trên biển mây",
-                    "emotion": "kinh ngạc, xúc động",
-                    "camera_angle": "cinematic wide angle low shot",
-                    "previous_panel_summary": "Khởi đầu hành trình, nhân vật đặt chân lên đỉnh núi thiêng.",
-                    "continuity_rules": "Nguyễn Minh mặc chiến bào xanh đen thêu rồng bạc, tóc đen ngắn bay nhẹ trong gió.",
-                    "speaker": "Nguyễn Minh",
-                    "dialogue": "Cuối cùng ta cũng đã tìm thấy Đền Thượng Cổ...",
-                    "bubble_type": "speech",
-                    "narration": "Sau ba ngày ba đêm vượt qua biển mây hiểm trở, cánh cổng huyền thoại đã hiện ra.",
-                    "layout_type": "wide",
-                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, cinematic wide angle low shot. CHAR_001 handsome young hero, short spiky jet-black hair, sharp deep blue eyes, small scar on left cheek, dark navy martial arts robe with silver dragon embroidery, standing heroically on cliff edge looking at glowing celestial floating temple in clouds, golden sunrise rays, highly detailed 8k, no text, no speech bubbles"
-                },
-                {
-                    "panel_index": 2,
-                    "scene_id": "S01",
-                    "location_id": "LOC_001",
-                    "location_name": "Bờ vực mây mù",
-                    "time_of_day": "morning",
-                    "weather": "clear sunrise",
-                    "characters": ["CHAR_001"],
-                    "character_names": "Nguyễn Minh",
-                    "action": "Nắm chặt chuôi kiếm bạc, ánh mắt bừng sáng quyết tâm",
-                    "emotion": "kiên định, quật cường",
-                    "camera_angle": "dramatic close-up shot",
-                    "previous_panel_summary": "Nguyễn Minh nhìn thấy mục tiêu phía xa.",
-                    "continuity_rules": "Giữ nguyên vết sẹo má trái và chiến bào xanh đen.",
-                    "speaker": "Nguyễn Minh",
-                    "dialogue": "Bất luận phía trước là cạm bẫy hay thử thách, ta quyết không lùi bước!",
-                    "bubble_type": "shout",
-                    "narration": "",
-                    "layout_type": "square",
-                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, dramatic close-up shot. CHAR_001 handsome young hero face, sharp glowing deep blue eyes full of resolve, short spiky black hair blown by wind, hand tightly gripping silver sword hilt, dynamic angle, vibrant lighting, highly detailed 8k, no text, no speech bubbles"
-                },
-                {
-                    "panel_index": 3,
-                    "scene_id": "S01",
-                    "location_id": "LOC_001",
-                    "location_name": "Cầu đá lơ lửng giữa trời",
-                    "time_of_day": "morning",
-                    "weather": "windy misty",
-                    "characters": ["CHAR_002"],
-                    "character_names": "Linh Nhi",
-                    "action": "Linh Nhi bất ngờ xuất hiện nơi đầu cầu đá với tà áo tung bay",
-                    "emotion": "thanh thoát, cảnh báo",
-                    "camera_angle": "medium full shot",
-                    "previous_panel_summary": "Nguyễn Minh chuẩn bị bước vào cây cầu hiểm trở.",
-                    "continuity_rules": "Linh Nhi diện y phục tiên hiệp trắng hồng, trâm hoa sen ngọc bích trên tóc.",
-                    "speaker": "Linh Nhi",
-                    "dialogue": "Khoan đã! Cây cầu này ẩn chứa trận pháp thượng cổ ngàn năm đấy.",
-                    "bubble_type": "speech",
-                    "narration": "Một giọng nói trong trẻo bỗng vang lên từ phía sau làn sương trắng...",
-                    "layout_type": "tall",
-                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, medium full shot. CHAR_002 beautiful anime girl, long chestnut brown hair with jade lotus hairpin, luminous amber eyes, elegant white and pastel pink silk dress flowing gracefully in mountain wind, standing at entrance of ancient floating bridge, soft morning mist, vibrant colors, 8k, no text, no speech bubbles"
-                },
-                {
-                    "panel_index": 4,
-                    "scene_id": "S01",
-                    "location_id": "LOC_001",
-                    "location_name": "Đầu cầu đá cổ",
-                    "time_of_day": "morning",
-                    "weather": "clear",
-                    "characters": ["CHAR_001", "CHAR_002"],
-                    "character_names": "Nguyễn Minh, Linh Nhi",
-                    "action": "Nguyễn Minh xoay người cảnh giác, đối diện với Linh Nhi",
-                    "emotion": "ngạc nhiên, đề phòng",
-                    "camera_angle": "cinematic two-shot over the shoulder",
-                    "previous_panel_summary": "Linh Nhi vừa xuất hiện cảnh báo Nguyễn Minh.",
-                    "continuity_rules": "Nguyễn Minh bên trái trong áo xanh đen; Linh Nhi đối diện trong xiêm y trắng hồng.",
-                    "speaker": "Nguyễn Minh",
-                    "dialogue": "Nàng là ai? Sao lại xuất hiện ở cấm địa hiểm ác này?",
-                    "bubble_type": "speech",
-                    "narration": "",
-                    "layout_type": "wide",
-                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, cinematic two-shot over the shoulder. Two characters facing each other on ancient stone bridge: CHAR_001 in dark navy martial arts robe on guard with hand on sword, facing CHAR_002 in flowing white-pink dress with gentle smile, breathtaking cloudscape background, vibrant lighting, highly detailed 8k, no text, no speech bubbles"
-                },
-                {
-                    "panel_index": 5,
-                    "scene_id": "S02",
-                    "location_id": "LOC_002",
-                    "location_name": "Cổng Điện Thần Thượng Cổ",
-                    "time_of_day": "noon",
-                    "weather": "mystical starlight",
-                    "characters": ["CHAR_001", "CHAR_002"],
-                    "character_names": "Nguyễn Minh, Linh Nhi",
-                    "action": "Linh Nhi kết ấn kích hoạt cổ ngọc mở toang cánh cổng thần bí",
-                    "emotion": "tập trung cao độ, hân hoan",
-                    "camera_angle": "dynamic medium shot",
-                    "previous_panel_summary": "Cả hai hợp sức vượt qua cầu đá tiến đến trước cổng điện.",
-                    "continuity_rules": "Giữ nguyên trang phục đặc trưng của cả hai nhân vật.",
-                    "speaker": "Linh Nhi",
-                    "dialogue": "Trận pháp khai mở! Cánh cửa dẫn vào cội nguồn sức mạnh đã hiện ra!",
-                    "bubble_type": "shout",
-                    "narration": "Ánh sáng ngọc bích rực rỡ xua tan bóng tối ngàn năm...",
-                    "layout_type": "square",
-                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, dynamic medium shot. CHAR_002 holding glowing emerald jade artifact emitting brilliant green light runes, CHAR_001 beside her in defensive stance sword drawn, ancient massive temple gates slowly unlocking with divine golden beams, particle effects, vibrant colors, 8k, no text, no speech bubbles"
-                },
-                {
-                    "panel_index": 6,
-                    "scene_id": "S02",
-                    "location_id": "LOC_002",
-                    "location_name": "Đại Điện Cổ",
-                    "time_of_day": "noon",
-                    "weather": "mystical starlight",
-                    "characters": ["CHAR_001", "CHAR_002"],
-                    "character_names": "Nguyễn Minh, Linh Nhi",
-                    "action": "Cả hai cùng bước vào sảnh điện nguy nga, ánh mắt choáng ngợp trước những cột đá thần tích",
-                    "emotion": "kinh ngạc, kính cẩn",
-                    "camera_angle": "grand wide angle shot",
-                    "previous_panel_summary": "Cánh cổng thần bí vừa mở toang.",
-                    "continuity_rules": "Nguyễn Minh và Linh Nhi sánh vai bước qua ngưỡng cửa điện thần.",
-                    "speaker": "Nguyễn Minh",
-                    "dialogue": "Nơi này... tựa như đã ngủ quên từ vạn kiếp trước.",
-                    "bubble_type": "whisper",
-                    "narration": "Không gian tĩnh mịch ngập tràn cổ ngữ phát sáng lung linh.",
-                    "layout_type": "wide",
-                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, grand wide angle shot. CHAR_001 and CHAR_002 stepping together into magnificent ancient temple hall, massive glowing marble pillars, mystical floating runic lanterns, golden stardust in air, breathtaking scale, 8k, no text, no speech bubbles"
-                },
-                {
-                    "panel_index": 7,
-                    "scene_id": "S02",
-                    "location_id": "LOC_002",
-                    "location_name": "Hành lang Thần Cổ",
-                    "time_of_day": "afternoon",
-                    "weather": "dim mystical light",
-                    "characters": ["CHAR_001"],
-                    "character_names": "Nguyễn Minh",
-                    "action": "Nguyễn Minh vung kiếm chặn đứng cạm bẫy mũi tên ánh sáng để che chắn cho Linh Nhi",
-                    "emotion": "quyết liệt, dũng cảm",
-                    "camera_angle": "dynamic action shot",
-                    "previous_panel_summary": "Cả hai đang di chuyển sâu vào hành lang điện thần.",
-                    "continuity_rules": "Chiến bào xanh đen của Nguyễn Minh đón đầu hiểm nguy, kiếm bạc tỏa sáng.",
-                    "speaker": "Nguyễn Minh",
-                    "dialogue": "Cẩn thận! Trận pháp kích hoạt! Hãy đứng sau lưng ta!",
-                    "bubble_type": "shout",
-                    "narration": "Cạm bẫy cổ đại đồng loạt bừng tỉnh ngăn chặn kẻ đột nhập.",
-                    "layout_type": "tall",
-                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, dynamic action shot. CHAR_001 handsome young hero in dark navy robe swinging gleaming silver sword to deflect showers of glowing crystal light arrows, azure sword trail, protective heroic pose, ancient stone corridor, dramatic sparks, 8k, no text, no speech bubbles"
-                },
-                {
-                    "panel_index": 8,
-                    "scene_id": "S02",
-                    "location_id": "LOC_002",
-                    "location_name": "Tiền sảnh Cấm Địa",
-                    "time_of_day": "afternoon",
-                    "weather": "shadowy ominous glow",
-                    "characters": ["CHAR_001", "CHAR_002"],
-                    "character_names": "Nguyễn Minh, Linh Nhi",
-                    "action": "Thạch tượng thủ vệ khổng lồ mở bừng đôi mắt đỏ rực, chấn động cả sàn đá",
-                    "emotion": "căng thẳng, cảnh giác cao độ",
-                    "camera_angle": "dramatic low angle shot",
-                    "previous_panel_summary": "Nguyễn Minh vừa phá vỡ cạm bẫy mũi tên ánh sáng.",
-                    "continuity_rules": "Cả hai nhân vật đối diện với bóng dáng thạch tượng đồ sộ.",
-                    "speaker": "Linh Nhi",
-                    "dialogue": "Thạch Tượng Cổ Vệ ngàn năm đã thức tỉnh... Không thể đối kháng bằng sức mạnh thông thường!",
-                    "bubble_type": "whisper",
-                    "narration": "Tiếng gầm rú bằng đá rền vang làm rung chuyển nền móng điện thần.",
-                    "layout_type": "wide",
-                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, dramatic low angle shot. Enormous ancient stone guardian titan with blazing crimson runic eyes rising from palace floor, CHAR_001 drawing sword and CHAR_002 preparing magic talisman, towering ominous presence, epic fantasy atmosphere, 8k, no text, no speech bubbles"
-                },
-                {
-                    "panel_index": 9,
-                    "scene_id": "S02",
-                    "location_id": "LOC_002",
-                    "location_name": "Chiến trường Thần Điện",
-                    "time_of_day": "dusk",
-                    "weather": "blazing energy storms",
-                    "characters": ["CHAR_001"],
-                    "character_names": "Nguyễn Minh",
-                    "action": "Nguyễn Minh bật nhảy lên không trung, phóng xuất kiếm khí Thanh Long chém về phía thủ vệ",
-                    "emotion": "hào hùng, bùng nổ sức mạnh",
-                    "camera_angle": "extreme dynamic action shot",
-                    "previous_panel_summary": "Thạch tượng khổng lồ tấn công dồn dập.",
-                    "continuity_rules": "Kiếm bạc hóa thành luồng rồng xanh lam bao quanh Nguyễn Minh.",
-                    "speaker": "Nguyễn Minh",
-                    "dialogue": "Thanh Long Phá Thiên! Hãy mở đường cho chúng ta!",
-                    "bubble_type": "shout",
-                    "narration": "Kiếm ý tung hoành tạo thành một màn tráng quan tuyệt đỉnh.",
-                    "layout_type": "tall",
-                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, extreme dynamic action shot. CHAR_001 leaping airborne with sword, radiating massive swirling silver-blue ethereal dragon aura, striking towards massive stone monster, glowing impact fissures, wind pressure tearing robes, highly detailed 8k, no text, no speech bubbles"
-                },
-                {
-                    "panel_index": 10,
-                    "scene_id": "S02",
-                    "location_id": "LOC_002",
-                    "location_name": "Trận Pháp Trung Tâm",
-                    "time_of_day": "dusk",
-                    "weather": "calm emerald luminescence",
-                    "characters": ["CHAR_002"],
-                    "character_names": "Linh Nhi",
-                    "action": "Linh Nhi niệm phép ấn, hoa sen ngọc bích tỏa sáng xoa dịu cuồng nộ của thủ vệ",
-                    "emotion": "tập trung thanh tịnh, từ bi",
-                    "camera_angle": "luminous medium shot",
-                    "previous_panel_summary": "Nguyễn Minh kìm chân thủ vệ bằng đòn kiếm rồng phá thiên.",
-                    "continuity_rules": "Linh Nhi nâng cao ngọc bội hoa sen, dải lụa trắng hồng bồng bềnh trong ánh quang.",
-                    "speaker": "Linh Nhi",
-                    "dialogue": "Oán niệm ngàn năm... Hãy quy về tĩnh lặng!",
-                    "bubble_type": "shout",
-                    "narration": "Sự hòa hợp giữa sức mạnh cương trực và nhu thuận đã hóa giải phong ấn.",
-                    "layout_type": "square",
-                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, luminous medium shot. CHAR_002 beautiful anime girl casting peaceful ancient seal, jade lotus amulet floating above her hands radiating brilliant concentric circles of emerald green light, calming the battle, elegant silk dress fluttering, serene expression, 8k, no text, no speech bubbles"
-                },
-                {
-                    "panel_index": 11,
-                    "scene_id": "S02",
-                    "location_id": "LOC_002",
-                    "location_name": "Tâm Điện Thần Thượng Cổ",
-                    "time_of_day": "night",
-                    "weather": "divine cosmic starlight",
-                    "characters": ["CHAR_001", "CHAR_002"],
-                    "character_names": "Nguyễn Minh, Linh Nhi",
-                    "action": "Nguyễn Minh tiếp nhận cuộn bí kíp thần thoại tỏa sáng vàng kim đang từ từ hạ xuống bàn tay",
-                    "emotion": "thiêng liêng, hạnh phúc, tin tưởng",
-                    "camera_angle": "cinematic eye-level shot",
-                    "previous_panel_summary": "Thủ vệ đã hóa giải phong ấn, cấm địa hoàn toàn mở lối.",
-                    "continuity_rules": "Nguyễn Minh và Linh Nhi đứng bên nhau đón nhận bí kíp thần tích.",
-                    "speaker": "Nguyễn Minh",
-                    "dialogue": "Bí kíp Thượng Cổ... Cuối cùng ta đã có thể cứu vãn sự tồn vong của sư môn!",
-                    "bubble_type": "speech",
-                    "narration": "Ánh sáng thiêng liêng rọi sáng lòng dũng cảm và tinh thần nghĩa hiệp bất diệt.",
-                    "layout_type": "square",
-                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, cinematic eye-level shot. CHAR_001 receiving glowing celestial golden scroll floating into his hands, CHAR_002 beside him smiling warmly with relieved graceful look, floating sacred dust particles and nebula aura, vibrant rich colors, 8k, no text, no speech bubbles"
-                },
-                {
-                    "panel_index": 12,
-                    "scene_id": "S02",
-                    "location_id": "LOC_001",
-                    "location_name": "Đỉnh núi Vân Phong dưới trời sao",
-                    "time_of_day": "night",
-                    "weather": "infinite starry galaxy sky",
-                    "characters": ["CHAR_001", "CHAR_002"],
-                    "character_names": "Nguyễn Minh, Linh Nhi",
-                    "action": "Cả hai đứng kề vai trên đỉnh núi ngắm vạn dặm sơn hà dưới bầu trời ngàn sao rực rỡ",
-                    "emotion": "hào hùng, hy vọng, gắn kết",
-                    "camera_angle": "epic ultra-wide landscape shot",
-                    "previous_panel_summary": "Hai anh hùng thành công thu nhận bảo vật trở ra đỉnh núi thiêng.",
-                    "continuity_rules": "Cả hai nhân vật hướng ánh nhìn về thế gian, áo choàng và xiêm y tung bay trong gió đêm.",
-                    "speaker": "Nguyễn Minh",
-                    "dialogue": "Đi thôi Linh Nhi! Giang sơn ngoài kia đang chờ đón chúng ta!",
-                    "bubble_type": "shout",
-                    "narration": "Một trang sử mới đã mở ra. Bản anh hùng ca của họ sẽ còn lưu truyền mãi qua muôn đời.",
-                    "layout_type": "wide",
-                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, epic ultra-wide landscape shot. CHAR_001 in navy robe and CHAR_002 in celestial white-pink dress standing side by side proudly on mountain cliff peak overlooking boundless glowing fantasy continent below magnificent starry galaxy nebula and crescent moon, breathtaking masterpiece, vibrant colors, 8k, no text, no speech bubbles"
-                }
-            ]
+    def _create_dynamic_fallback(self, story_text: str, genre: str = "", style: str = "") -> Dict[str, Any]:
+        """
+        Dynamically extracts characters, settings, dialogues, and scenes from the user's actual prose text.
+        Guarantees that fallback comic is ALWAYS 100% faithful to the user's actual story.
+        """
+        text = (story_text or "").strip()
+        if not text:
+            text = "Một ngày mới tràn đầy năng lượng, nhân vật chính nỗ lực vượt qua thử thách để vươn tới thành công."
+
+        STOP_WORDS = {
+            "Một", "Sau", "Khi", "Anh", "Cô", "Và", "Nhưng", "Trong", "Để", "Tại", "Bỗng", "Đột", "Có", 
+            "Ngày", "Đêm", "Lúc", "Nơi", "Với", "Từ", "Người", "Họ", "Tôi", "Bạn", "Nếu", "Vì", "Tuy", 
+            "Dù", "Dẫu", "Mỗi", "Các", "Những", "Toàn", "Từng", "Cả", "Ở", "Do", "Bởi", "Tuyệt", "Được", 
+            "Bị", "Đã", "Đang", "Sẽ", "Vừa", "Trước", "Theo", "Cùng"
         }
 
+        # Extract Vietnamese proper nouns
+        raw_names = re.findall(
+            r'\b([A-ZÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬĐÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰÝỲỶỸỴ][a-zàáảãạăằắẳẵặâầấẩẫậđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựýỳỷỹỵ]+(?:\s+[A-ZÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬĐÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰÝỲỶỸỴ][a-zàáảãạăằắẳẵặâầấẩẫậđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựýỳỷỹỵ]+)*)\b', 
+            text
+        )
+        valid_names = [n for n in raw_names if n.split()[0] not in STOP_WORDS and len(n.split()) <= 3]
+        char_name = valid_names[0] if valid_names else "Nhân vật chính"
+
+        sec_name = None
+        for n in valid_names[1:]:
+            if n != char_name and n not in char_name:
+                sec_name = n
+                break
+
+        lower_text = text.lower()
+        is_female = sum(lower_text.count(w) for w in ['cô', 'nàng', 'chị', 'nữ', 'gái']) > sum(lower_text.count(w) for w in ['anh', 'chàng', 'nam', 'cậu', 'trai'])
+        gender = "female" if is_female else "male"
+        gender_tag = "1girl" if is_female else "1boy"
+
+        # Detect genre / setting
+        if any(w in lower_text for w in ['gym', 'tạ', 'phòng tập', 'treadmill', 'chạy bộ', 'cơ bắp', 'fitness', 'thể thao', 'curl', 'squat']):
+            loc_name = "Phòng tập Gym hiện đại"
+            loc_arch = "modern fitness gym interior, weight machines, dumbbells on racks, workout benches"
+            loc_lighting = "bright energetic LED ceiling lights, clean polished wooden floor"
+            loc_tags = "LOC_001, modern fitness gym interior, weight racks, dumbells, fitness machines, bright led lighting"
+            char_costume = "áo thun thể thao đen, quần short tập gym, bao tay thể thao"
+            char_appearance = "thân hình thể thao săn chắc, ánh mắt kiên định, nụ cười rạng rỡ"
+            char_tags = f"CHAR_001, {gender_tag}, handsome athletic build, short black hair, focused eyes, black athletic gym t-shirt, sports shorts, gym wrist wraps"
+            action_keyword = "working out, lifting weights, energetic fitness training"
+        elif any(w in lower_text for w in ['văn phòng', 'công sở', 'laptop', 'máy tính', 'công ty', 'code', 'sếp', 'bàn làm việc']):
+            loc_name = "Văn phòng công nghệ hiện đại"
+            loc_arch = "sleek contemporary office, glass partitions, modern wooden desk, dual monitors"
+            loc_lighting = "clean soft office lighting, floor-to-ceiling glass windows"
+            loc_tags = "LOC_001, modern corporate office interior, sleek wooden work desk, computer screens, minimalist office"
+            char_costume = "áo sơ mi công sở lịch sự, quần tây, đồng hồ thông minh"
+            char_appearance = "vẻ ngoài tri thức, ánh mắt sắc sảo, phong thái chuyên nghiệp"
+            char_tags = f"CHAR_001, {gender_tag}, smart professional appearance, neat short black hair, casual smart dark shirt, office wear"
+            action_keyword = "typing on laptop, reviewing project, focused work"
+        elif any(w in lower_text for w in ['kiếm', 'tu tiên', 'chưởng', 'yêu thú', 'pháp bảo', 'sư phụ', 'võ công']):
+            loc_name = "Thung lũng sơn thủy huyền ảo"
+            loc_arch = "ancient misty mountain peaks, towering ancient stone pagodas, floating ruins"
+            loc_lighting = "mystical dawn sunlight breaking through purple mist, ethereal glowing particles"
+            loc_tags = "LOC_001, ancient oriental fantasy mountains, misty cliffs, glowing celestial atmosphere"
+            char_costume = "chiến bào kiếm khách thêu hoa văn, thắt lưng da, bao tay hộ uyển"
+            char_appearance = "khôi ngô tuấn tú, ánh mắt sắc lạnh kiên định, vóc dáng uy nghi"
+            char_tags = f"CHAR_001, {gender_tag}, handsome young hero, dark navy martial arts robe, holding sword"
+            action_keyword = "martial arts stance, wielding sword with ethereal aura"
+        else:
+            loc_name = "Bối cảnh câu chuyện đời thường"
+            loc_arch = "modern vibrant anime scenery, cozy aesthetic indoor and street setting"
+            loc_lighting = "warm natural daylight, cinematic atmospheric glow"
+            loc_tags = "LOC_001, modern aesthetic anime setting, vibrant rich colors, cinematic natural daylight"
+            char_costume = "trang phục trẻ trung hiện đại, áo phông năng động"
+            char_appearance = "gương mặt sáng, đôi mắt đầy nhiệt huyết, thần thái tích cực"
+            char_tags = f"CHAR_001, {gender_tag}, handsome expressive face, neat modern hairstyle, stylish casual clothes"
+            action_keyword = "confident everyday action, positive determined expression"
+
+        char_bible = [{
+            "char_id": "CHAR_001",
+            "name": char_name,
+            "gender": gender,
+            "age": "22",
+            "appearance": char_appearance,
+            "costume": char_costume,
+            "personality": "kiên trì, quyết tâm, tràn đầy năng lượng",
+            "comfy_tags": f"{char_tags}, vibrant full color anime webtoon art"
+        }]
+
+        if sec_name:
+            char_bible.append({
+                "char_id": "CHAR_002",
+                "name": sec_name,
+                "gender": "male",
+                "age": "28",
+                "appearance": "gương mặt thân thiện, ánh mắt khích lệ đầy kinh nghiệm",
+                "costume": "trang phục gọn gàng phù hợp bối cảnh",
+                "personality": "nhiệt huyết, ân cần hỗ trợ",
+                "comfy_tags": "CHAR_002, 1man, mature look, confident friendly expression, professional outfit, vibrant anime art"
+            })
+
+        loc_bible = [{
+            "loc_id": "LOC_001",
+            "name": loc_name,
+            "architecture": loc_arch,
+            "lighting": loc_lighting,
+            "atmosphere": "vibrant, inspiring, cinematic",
+            "comfy_tags": loc_tags
+        }]
+
+        # Segment sentences for 8 panels
+        raw_sentences = [s.strip() for s in re.split(r'(?<=[.!?…\n])\s+', text) if len(s.strip()) > 6]
+        if not raw_sentences:
+            raw_sentences = [text]
+
+        target_panels = 8
+        segments = []
+        if len(raw_sentences) <= target_panels:
+            segments = raw_sentences
+            while len(segments) < target_panels:
+                segments.append(segments[-1])
+        else:
+            step = len(raw_sentences) / target_panels
+            for i in range(target_panels):
+                start = int(i * step)
+                end = int((i + 1) * step) if i < target_panels - 1 else len(raw_sentences)
+                chunk = " ".join(raw_sentences[start:end])
+                segments.append(chunk)
+
+        angles = [
+            "cinematic wide establishing shot",
+            "medium shot from front",
+            "dynamic eye-level shot",
+            "dramatic low angle action shot",
+            "intense close-up facial shot",
+            "heroic dynamic action shot",
+            "cinematic three-quarter view shot",
+            "inspirational wide ending shot"
+        ]
+
+        panels = []
+        for idx, seg in enumerate(segments):
+            p_idx = idx + 1
+            angle = angles[idx % len(angles)]
+            quotes = re.findall(r'["\'“”«»](.*?)["\'“”«»]', seg)
+            if quotes:
+                dialogue = quotes[0].strip()
+                b_type = "speech"
+                speaker = sec_name if (sec_name and sec_name in seg) else char_name
+            else:
+                if idx == 0:
+                    dialogue = "Bắt đầu mục tiêu hôm nay thôi nào!"
+                    b_type = "thought"
+                    speaker = char_name
+                elif idx == target_panels - 1:
+                    dialogue = "Cảm giác thật tuyệt vời khi vượt qua chính mình!"
+                    b_type = "speech"
+                    speaker = char_name
+                elif idx in (3, 4):
+                    dialogue = "Cố lên, không được bỏ cuộc!"
+                    b_type = "thought"
+                    speaker = char_name
+                else:
+                    dialogue = ""
+                    b_type = "none"
+                    speaker = char_name
+
+            comfy_prompt = (
+                f"masterpiece, best quality, vibrant full color anime webtoon art, {angle}, "
+                f"{char_tags}, {action_keyword}, {loc_tags}, dynamic atmospheric lighting, 8k digital illustration, no text, no speech bubbles"
+            )
+
+            panels.append({
+                "panel_index": p_idx,
+                "scene_id": f"S{((p_idx - 1) // 2) + 1:02d}",
+                "location_id": "LOC_001",
+                "location_name": loc_name,
+                "time_of_day": "day",
+                "weather": "clear",
+                "characters": ["CHAR_001"] + (["CHAR_002"] if sec_name and (sec_name in seg) else []),
+                "character_names": f"{char_name}" + (f", {sec_name}" if sec_name and (sec_name in seg) else ""),
+                "action": seg[:120],
+                "emotion": "tập trung, quyết tâm",
+                "camera_angle": angle,
+                "speaker": speaker if dialogue else "",
+                "dialogue": dialogue,
+                "bubble_type": b_type,
+                "narration": seg,
+                "layout_type": "square" if p_idx % 3 != 0 else "wide",
+                "comfy_prompt": comfy_prompt,
+                "image_prompt": comfy_prompt,
+                "negative_prompt": "text, watermark, speech bubbles, letters, comic panel border, split screen, monochrome, lowres, bad anatomy, deformed"
+            })
+
+        return {
+            "character_bible": char_bible,
+            "location_bible": loc_bible,
+            "story_setting": f"Câu chuyện về {char_name} tại {loc_name}.",
+            "negative_prompt": "text, watermark, speech bubbles, letters, comic panel border, lowres, bad anatomy, deformed",
+            "panels": panels
+        }
