@@ -995,6 +995,8 @@ def enhance_panel_with_comfyui(panel_id: int, db: Session = Depends(get_db)):
         panel.final_image_url = panel_url
         panel.image_url = panel_url
         panel.enhancement_provider = "comfyui"
+        panel.generation_status = "completed"
+        panel.error_message = None
         db.commit()
         db.refresh(panel)
         return {

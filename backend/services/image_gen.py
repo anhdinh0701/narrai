@@ -201,9 +201,13 @@ def generate_comic_panel_image(
         req = urllib.request.Request(
             f"{COMFYUI_URL}/prompt",
             data=data,
-            headers={'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1'}
+            headers={
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': '1',
+                'User-Agent': 'NarrAI-ComfyUI/1.0'
+            }
         )
-        with urllib.request.urlopen(req, timeout=5) as response:
+        with urllib.request.urlopen(req, timeout=10) as response:
             res_json = json.loads(response.read().decode("utf-8"))
             prompt_id = res_json.get("prompt_id")
 
@@ -212,32 +216,48 @@ def generate_comic_panel_image(
 
         print(f"[NarrAI ImageGen] Prompt {prompt_id} queued in ComfyUI ({ckpt}), waiting...")
         start_time = time.time()
-        while time.time() - start_time < 50:
-            time.sleep(1)
-            hist_req = urllib.request.Request(
-                f"{COMFYUI_URL}/history/{prompt_id}",
-                headers={'ngrok-skip-browser-warning': '1'}
-            )
-            with urllib.request.urlopen(hist_req, timeout=5) as hist_res:
-                hist_data = json.loads(hist_res.read().decode("utf-8"))
-                entry = hist_data.get(prompt_id)
-                if entry and "outputs" in entry:
-                    for node_id, node_output in entry["outputs"].items():
-                        if "images" in node_output and len(node_output["images"]) > 0:
-                            img_info = node_output["images"][0]
-                            filename = urllib.parse.quote(img_info.get("filename", ""))
-                            subfolder = urllib.parse.quote(img_info.get("subfolder", ""))
-                            img_type = img_info.get("type", "output")
-                            view_url = f"{COMFYUI_URL}/view?filename={filename}&subfolder={subfolder}&type={img_type}"
-                            view_req = urllib.request.Request(view_url, headers={'ngrok-skip-browser-warning': '1'})
-                            with urllib.request.urlopen(view_req, timeout=10) as img_res:
-                                img_bytes = img_res.read()
-                                b64 = base64.b64encode(img_bytes).decode('utf-8')
-                                print(f"[NarrAI ImageGen] ComfyUI image generated in {time.time() - start_time:.1f}s ({len(img_bytes)} bytes)")
-                                return f"data:image/png;base64,{b64}"
-    except Exception as e:
-        print(f"[NarrAI ImageGen] ComfyUI generation failed or timed out: {e}. Falling back to curated panel.")
-        return get_curated_panel(prompt, seed=seed)
+        max_wait_seconds = 240  # 4 minutes per panel for SDXL generation / queueing
 
-    return get_curated_panel(prompt, seed=seed)
+        while time.time() - start_time < max_wait_seconds:
+            time.sleep(2)
+            try:
+                hist_req = urllib.request.Request(
+                    f"{COMFYUI_URL}/history/{prompt_id}",
+                    headers={
+                        'ngrok-skip-browser-warning': '1',
+                        'User-Agent': 'NarrAI-ComfyUI/1.0'
+                    }
+                )
+                with urllib.request.urlopen(hist_req, timeout=10) as hist_res:
+                    hist_data = json.loads(hist_res.read().decode("utf-8"))
+                    entry = hist_data.get(prompt_id)
+                    if entry and "outputs" in entry:
+                        for node_id, node_output in entry["outputs"].items():
+                            if "images" in node_output and len(node_output["images"]) > 0:
+                                img_info = node_output["images"][0]
+                                filename = urllib.parse.quote(img_info.get("filename", ""))
+                                subfolder = urllib.parse.quote(img_info.get("subfolder", ""))
+                                img_type = img_info.get("type", "output")
+                                view_url = f"{COMFYUI_URL}/view?filename={filename}&subfolder={subfolder}&type={img_type}"
+                                view_req = urllib.request.Request(
+                                    view_url,
+                                    headers={
+                                        'ngrok-skip-browser-warning': '1',
+                                        'User-Agent': 'NarrAI-ComfyUI/1.0'
+                                    }
+                                )
+                                with urllib.request.urlopen(view_req, timeout=30) as img_res:
+                                    img_bytes = img_res.read()
+                                    b64 = base64.b64encode(img_bytes).decode('utf-8')
+                                    elapsed = time.time() - start_time
+                                    print(f"[NarrAI ImageGen] ComfyUI image generated in {elapsed:.1f}s ({len(img_bytes)} bytes)")
+                                    return f"data:image/png;base64,{b64}"
+            except Exception as poll_err:
+                # Network hiccup during polling - keep waiting
+                pass
+
+        raise RuntimeError(f"ComfyUI không hoàn thành tạo ảnh sau {max_wait_seconds}s (prompt: {prompt_id}). Vui lòng kiểm tra tiến trình ComfyUI trên máy.")
+    except Exception as e:
+        print(f"[NarrAI ImageGen] ComfyUI generation failed: {e}")
+        raise e
 
