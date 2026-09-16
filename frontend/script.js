@@ -317,38 +317,42 @@ const BackgroundManager = {
 
     // Curated manga / comic visual identity assets
     assets: {
-        // Contextual defaults
+        // Contextual defaults (from Step 1 onwards)
         home: 'assets/manga/page_blue_cinematic.jpg',
-        setup: 'assets/manga/page_manga_detective_full.png',
-        interview: 'assets/manga/panel_two_detectives.jpg',
-        config: 'assets/manga/panel_sword_mountain.jpg',
-        editor: 'assets/manga/panel_city_window.jpg',
-        comic: 'assets/manga/page_comic_action_full.png',
+        setup: 'assets/manga/page_village_blue_moon.jpg',     // Step 1: Misty blue village under moon
+        interview: 'assets/manga/page_ancient_town_rain.jpg', // Step 2: Ancient tiled-roof town in rain
+        config: 'assets/manga/page_warrior_canyon_fire.jpg',  // Step 3: Warrior on cliff overlooking glowing canyon
+        editor: 'assets/manga/page_moonlit_forest_rain.jpg',  // Editor (Prose): Moonlit rainy forest
+        comic: 'assets/manga/page_comic_action_full.png',     // Comic mode: Action comic full page
         history: 'assets/manga/page_manga_detective_full.png',
 
         // Genres
-        xianxia: 'assets/manga/panel_sword_mountain.jpg',
+        xianxia: 'assets/manga/page_warrior_canyon_fire.jpg',
         wuxia: 'assets/manga/panel_sword_mountain.jpg',
-        fantasy: 'assets/manga/panel_whitehair_anime.jpg',
+        fantasy: 'assets/manga/page_village_blue_moon.jpg',
         action: 'assets/manga/panel_combat_punch.jpg',
         romance: 'assets/manga/panel_two_detectives.jpg',
-        mystery: 'assets/manga/panel_detective_coffee.jpg',
+        mystery: 'assets/manga/page_ancient_town_rain.jpg',
         urban: 'assets/manga/panel_city_window.jpg',
         scifi: 'assets/manga/panel_blue_glowing_eyes.jpg',
-        adventure: 'assets/manga/panel_team_horizon.jpg',
+        adventure: 'assets/manga/page_moonlit_forest_rain.jpg',
+        horror: 'assets/manga/page_rain_forest_silhouette.png',
         manga: 'assets/manga/page_manga_detective_full.png'
     },
 
     init() {
         this.preload([
+            this.assets.setup,
+            this.assets.interview,
+            this.assets.config,
+            this.assets.editor,
+            this.assets.comic,
             this.assets.xianxia,
             this.assets.fantasy,
             this.assets.action,
             this.assets.romance,
-            this.assets.comic,
-            this.assets.setup
+            this.assets.mystery
         ]);
-        // workspaceBgStage is only shown in workspace phases, kept hidden on landing
     },
 
     preload(urls) {
@@ -386,7 +390,7 @@ const BackgroundManager = {
         clearTimeout(this.previewTimer);
         const targetImg = this.assets[genreKey];
         if (targetImg && targetImg !== this.lastImageUrl) {
-            this.transitionTo(targetImg, 0.16);
+            this.transitionTo(targetImg, 0.95);
         }
     },
 
@@ -394,14 +398,14 @@ const BackgroundManager = {
         clearTimeout(this.previewTimer);
         this.previewTimer = setTimeout(() => {
             if (this.currentGenre && this.assets[this.currentGenre]) {
-                this.transitionTo(this.assets[this.currentGenre]);
+                this.transitionTo(this.assets[this.currentGenre], 0.92);
             } else {
                 this.setContext(this.currentContext);
             }
         }, 280);
     },
 
-    transitionTo(imageUrl, targetOpacity = 0.13) {
+    transitionTo(imageUrl, targetOpacity = 0.92) {
         if (!imageUrl || imageUrl === this.lastImageUrl) return;
         this.lastImageUrl = imageUrl;
 
@@ -424,7 +428,7 @@ const BackgroundManager = {
             this.activeLayer = this.activeLayer === 'A' ? 'B' : 'A';
         };
         tempImg.onerror = () => {
-            nextLayer.style.backgroundImage = `url('assets/manga/page_blue_cinematic.jpg')`;
+            nextLayer.style.backgroundImage = `url('assets/manga/page_village_blue_moon.jpg')`;
             nextLayer.style.opacity = targetOpacity;
             nextLayer.classList.add('active');
             prevLayer.style.opacity = '0';
@@ -798,6 +802,8 @@ async function sendChatMessage() {
     chatBox.innerHTML += `<div class="chat-message chat-ai" id="chatLoading">${i18nDict[currentLang]['ai_thinking']}</div>`;
     chatBox.scrollTop = chatBox.scrollHeight;
 
+    if (typeof AIStudioChat !== 'undefined') AIStudioChat.setState('thinking');
+
     try {
         const response = await fetch(`${API_URL}/chat-interview`, {
             method: 'POST',
@@ -807,6 +813,7 @@ async function sendChatMessage() {
         const data = await response.json();
         
         document.getElementById('chatLoading').remove();
+        if (typeof AIStudioChat !== 'undefined') AIStudioChat.setState('idle');
         
         if (data.status === 'success') {
             globalData.chatHistory.push({"role": "assistant", "content": data.message});
@@ -819,6 +826,7 @@ async function sendChatMessage() {
         }
     } catch (error) {
         document.getElementById('chatLoading').textContent = "Lỗi kết nối.";
+        if (typeof AIStudioChat !== 'undefined') AIStudioChat.setState('idle');
     }
 }
 
@@ -1147,30 +1155,30 @@ const allGenres = [
     { vi: "Thanh xuân", en: "School Life", img: "assets/manga/panel_detective_coffee.jpg", bg: "romance" },
     { vi: "Cưới trước yêu sau", en: "Arranged Marriage", img: "assets/manga/panel_two_detectives.jpg", bg: "romance" },
     // Nhóm 2: Kỳ ảo
-    { vi: "Tiên hiệp", en: "Xianxia", img: "assets/manga/panel_sword_mountain.jpg", bg: "xianxia" },
-    { vi: "Kiếm hiệp", en: "Wuxia", img: "assets/manga/panel_sword_mountain.jpg", bg: "xianxia" },
-    { vi: "Huyền huyễn", en: "Xuanhuan", img: "assets/manga/panel_blue_peaks_wind.jpg", bg: "fantasy" },
-    { vi: "Kỳ ảo", en: "Fantasy", img: "assets/manga/panel_whitehair_anime.jpg", bg: "fantasy" },
+    { vi: "Tiên hiệp", en: "Xianxia", img: "assets/manga/page_warrior_canyon_fire.jpg", bg: "xianxia" },
+    { vi: "Kiếm hiệp", en: "Wuxia", img: "assets/manga/panel_sword_mountain.jpg", bg: "wuxia" },
+    { vi: "Huyền huyễn", en: "Xuanhuan", img: "assets/manga/page_village_blue_moon.jpg", bg: "fantasy" },
+    { vi: "Kỳ ảo", en: "Fantasy", img: "assets/manga/page_village_blue_moon.jpg", bg: "fantasy" },
     { vi: "Khoa học viễn tưởng", en: "Sci-Fi", img: "assets/manga/panel_blue_glowing_eyes.jpg", bg: "scifi" },
-    { vi: "Xuyên không", en: "Isekai", img: "assets/manga/panel_whitehair_anime.jpg", bg: "fantasy" },
+    { vi: "Xuyên không", en: "Isekai", img: "assets/manga/page_village_blue_moon.jpg", bg: "fantasy" },
     { vi: "Trọng sinh", en: "Rebirth", img: "assets/manga/panel_blue_hero_profile.jpg", bg: "fantasy" },
     { vi: "Hệ thống", en: "System", img: "assets/manga/panel_blue_glowing_eyes.jpg", bg: "scifi" },
     { vi: "Mạt thế", en: "Post-Apocalyptic", img: "assets/manga/panel_combat_punch.jpg", bg: "action" },
     // Nhóm 3: Hành động
     { vi: "Hành động", en: "Action", img: "assets/manga/panel_combat_punch.jpg", bg: "action" },
-    { vi: "Phiêu lưu", en: "Adventure", img: "assets/manga/panel_team_horizon.jpg", bg: "adventure" },
+    { vi: "Phiêu lưu", en: "Adventure", img: "assets/manga/page_moonlit_forest_rain.jpg", bg: "adventure" },
     { vi: "Võng du", en: "LitRPG", img: "assets/manga/panel_combat_punch.jpg", bg: "action" },
     // Nhóm 4: Bí ẩn
-    { vi: "Trinh thám", en: "Mystery", img: "assets/manga/panel_detective_coffee.jpg", bg: "mystery" },
-    { vi: "Kinh dị", en: "Horror", img: "assets/manga/panel_symbol.jpg", bg: "mystery" },
-    { vi: "Giật gân", en: "Thriller", img: "assets/manga/panel_phone_clue.jpg", bg: "mystery" },
-    { vi: "Linh dị", en: "Supernatural", img: "assets/manga/panel_hands_book.jpg", bg: "mystery" },
+    { vi: "Trinh thám", en: "Mystery", img: "assets/manga/page_ancient_town_rain.jpg", bg: "mystery" },
+    { vi: "Kinh dị", en: "Horror", img: "assets/manga/page_rain_forest_silhouette.png", bg: "horror" },
+    { vi: "Giật gân", en: "Thriller", img: "assets/manga/page_rain_forest_silhouette.png", bg: "horror" },
+    { vi: "Linh dị", en: "Supernatural", img: "assets/manga/panel_hands_book.jpg", bg: "horror" },
     // Nhóm 5: Đời sống
     { vi: "Đô thị", en: "Urban", img: "assets/manga/panel_city_window.jpg", bg: "urban" },
-    { vi: "Điền văn", en: "Slice of Life", img: "assets/manga/panel_street_mountain.jpg", bg: "urban" },
+    { vi: "Điền văn", en: "Slice of Life", img: "assets/manga/page_ancient_town_rain.jpg", bg: "urban" },
     { vi: "Hài hước", en: "Comedy", img: "assets/manga/panel_detective_coffee.jpg", bg: "manga" },
     { vi: "Bi kịch", en: "Tragedy", img: "assets/manga/panel_blue_hero_cloak.jpg", bg: "fantasy" },
-    { vi: "Lịch sử", en: "Historical", img: "assets/manga/panel_sword_mountain.jpg", bg: "xianxia" },
+    { vi: "Lịch sử", en: "Historical", img: "assets/manga/panel_sword_mountain.jpg", bg: "wuxia" },
     { vi: "Cung đấu", en: "Palace Scheme", img: "assets/manga/panel_woman.jpg", bg: "romance" }
 ];
 
@@ -1279,6 +1287,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof BackgroundManager !== 'undefined') {
         BackgroundManager.init();
     }
+    if (typeof AIStudioChat !== 'undefined') {
+        AIStudioChat.init();
+    }
     startMangaCinema();
     initGenres();
     setLang(currentLang);
@@ -1290,6 +1301,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (chatInput) {
         chatInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+        });
+    }
+
+    const chatInputText = document.getElementById('chatInputText');
+    if (chatInputText) {
+        chatInputText.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAssistantMessage(); }
         });
     }
     
@@ -1679,14 +1697,9 @@ function renderComicPanel(p, index, grid) {
     panelDiv.dataset.panelId = p.id || '';
     panelDiv.dataset.prompt = p.image_prompt || '';
 
-    // Header bar
+    // Header bar (Badge hidden per user request)
     const headerBar = document.createElement('div');
     headerBar.className = 'panel-header-bar';
-
-    const indexBadge = document.createElement('span');
-    indexBadge.className = 'panel-index-badge';
-    indexBadge.innerText = `KHUNG ${p.panel_index || index + 1}`;
-    headerBar.appendChild(indexBadge);
 
     const stageSwitch = document.createElement('div');
     stageSwitch.className = 'panel-stage-switch';
@@ -1787,16 +1800,524 @@ function renderComicPanel(p, index, grid) {
     actionBar.appendChild(tag);
     panelDiv.appendChild(actionBar);
 
-    // Text below image (webtoon style)
+    // Manga Speech Bubble Overlay (Bong bóng thoại hình oval đứng)
     if (p.dialogue_text) {
+        const overlay = document.createElement('div');
+        overlay.className = 'manga-bubble-overlay';
+        const defaultPos = (index % 2 === 0) ? 'manga-pos-bottom-left' : 'manga-pos-bottom-right';
+
         const bubble = document.createElement('div');
-        bubble.className = 'speech-bubble';
-        bubble.innerText = p.dialogue_text;
-        panelDiv.appendChild(bubble);
+        bubble.className = `manga-bubble ${defaultPos} bubble-speech`;
+
+        const body = document.createElement('div');
+        body.className = 'manga-bubble-body';
+
+        const textEl = document.createElement('div');
+        textEl.className = 'manga-bubble-text';
+        textEl.contentEditable = 'true';
+        textEl.spellcheck = false;
+        textEl.title = 'Bấm trực tiếp để chỉnh sửa lời thoại';
+        textEl.innerText = p.dialogue_text;
+        body.appendChild(textEl);
+        bubble.appendChild(body);
+
+        const actions = document.createElement('div');
+        actions.className = 'manga-bubble-actions';
+        actions.innerHTML = `
+            <button type="button" class="mb-act-btn" title="Đổi góc đặt bóng thoại" onclick="cycleBubblePos(this)">⇄ Vị trí</button>
+            <button type="button" class="mb-act-btn" title="Đổi kiểu bóng (Nói / Hét / Nghĩ / Thì thầm)" onclick="cycleBubbleType(this)">💭 Kiểu</button>
+            <button type="button" class="mb-act-btn btn-del" title="Xóa bóng thoại" onclick="deleteBubble(this)">✕</button>
+        `;
+        bubble.appendChild(actions);
+        overlay.appendChild(bubble);
+        imgWrap.appendChild(overlay);
     }
 
     grid.appendChild(panelDiv);
 }
+
+// ============================================================
+// NARRAI PRO — Progress UI Helpers
+// ============================================================
+
+const PRO_STEPS = ['pstep-analyze', 'pstep-story', 'pstep-chars', 'pstep-panels', 'pstep-art', 'pstep-finish'];
+
+function proSetStep(stepId, state) {
+    const el = document.getElementById(stepId);
+    if (!el) return;
+    el.className = `pro-step ${state}`;
+}
+
+function proAdvanceProgress(doneUpTo) {
+    PRO_STEPS.forEach((id, i) => {
+        if (i < doneUpTo) proSetStep(id, 'done');
+        else if (i === doneUpTo) proSetStep(id, 'active');
+        else proSetStep(id, 'pending');
+    });
+    const pct = Math.round((doneUpTo / (PRO_STEPS.length - 1)) * 100);
+    const bar = document.getElementById('proProgressBar');
+    if (bar) bar.style.width = `${pct}%`;
+}
+
+function proResetProgress() {
+    PRO_STEPS.forEach(id => proSetStep(id, 'pending'));
+    const bar = document.getElementById('proProgressBar');
+    if (bar) bar.style.width = '0%';
+}
+
+function proCompleteProgress() {
+    PRO_STEPS.forEach(id => proSetStep(id, 'done'));
+    const bar = document.getElementById('proProgressBar');
+    if (bar) bar.style.width = '100%';
+}
+
+// ============================================================
+// NARRAI PRO — Character-Specific Speech Bubble Compositor
+// ============================================================
+
+function getSpeakerBadgeClass(speaker) {
+    const s = (speaker || '').toLowerCase();
+    if (s.includes('dẫn') || s.includes('narrat') || s.includes('người kể')) {
+        return 'speaker-narrator';
+    }
+    if (s.includes('linh') || s.includes('nữ') || s.includes('muội') || s.includes('cô') || s.includes('bạch')) {
+        return 'speaker-companion';
+    }
+    if (s.includes('ma') || s.includes('quỷ') || s.includes('địch') || s.includes('thú') || s.includes('sát')) {
+        return 'speaker-villain';
+    }
+    return 'speaker-hero';
+}
+
+function getPanelClassByLayout(p, index) {
+    if (p.layout_type === 'wide') return 'pro-panel-wide';
+    if (p.layout_type === 'tall') return 'pro-panel-tall';
+    // Dynamic paneling rhythm based on storyboard pacing
+    if (index === 0) return 'pro-panel-wide'; // Establishing scene
+    if (index % 4 === 1) return 'pro-panel-focus';
+    if (index % 4 === 2) return 'pro-panel-close';
+    if (index % 4 === 3) return 'pro-panel-half';
+    return 'pro-panel-half';
+}
+
+function getShotTypeLabel(p, index) {
+    const st = ((p.shot_type || p.camera_angle || '') + '').toLowerCase();
+    if (st.includes('wide') || p.layout_type === 'wide') return 'ĐẠI CẢNH (WIDE)';
+    if (st.includes('tall') || st.includes('action') || p.layout_type === 'tall') return 'HÀNH ĐỘNG (ACTION)';
+    if (st.includes('close')) return 'CẬN CẢNH (CLOSE-UP)';
+    if (st.includes('two')) return 'ĐỐI THOẠI (TWO-SHOT)';
+    if (index === 0) return 'MỞ ĐẦU (ESTABLISHING)';
+    return 'TRUNG CẢNH (MEDIUM)';
+}
+
+function renderProComicPanel(p, index, container) {
+    const panelWrap = document.createElement('div');
+    const layoutClass = getPanelClassByLayout(p, index);
+    panelWrap.className = `pro-panel ${layoutClass}`;
+    const panelId = `pro-panel-${p.id || index}`;
+    panelWrap.id = panelId;
+
+    const inner = document.createElement('div');
+    inner.className = 'pro-panel-inner';
+
+    // 1. Image Box / Manga Panel Container
+    const imgBox = document.createElement('div');
+    imgBox.className = 'pro-panel-img-box manga-panel-container';
+
+    // Top Header Bar: Quick Manga Tools (Badge hidden per user request)
+    const topbar = document.createElement('div');
+    topbar.className = 'manga-panel-topbar';
+
+    const tools = document.createElement('div');
+    tools.className = 'manga-panel-tools';
+
+    const addBubbleBtn = document.createElement('button');
+    addBubbleBtn.type = 'button';
+    addBubbleBtn.className = 'manga-tool-btn';
+    addBubbleBtn.innerHTML = '+ Thoại';
+    addBubbleBtn.title = 'Thêm bong bóng thoại vào khung tranh';
+    addBubbleBtn.onclick = (e) => { e.stopPropagation(); addBubbleToPanel(panelId); };
+    tools.appendChild(addBubbleBtn);
+
+    const regenBtn = document.createElement('button');
+    regenBtn.type = 'button';
+    regenBtn.className = 'manga-tool-btn';
+    regenBtn.innerHTML = '🎨 Vẽ lại';
+    regenBtn.title = 'Làm mới khung hình';
+    regenBtn.onclick = (e) => { e.stopPropagation(); regenPanelImage(panelId); };
+    tools.appendChild(regenBtn);
+
+    topbar.appendChild(tools);
+    imgBox.appendChild(topbar);
+
+    // Narration banner overlay inside panel if present
+    if (p.narration && p.narration.trim().length > 0) {
+        const narBanner = document.createElement('div');
+        narBanner.className = 'manga-narration-banner';
+        narBanner.contentEditable = 'true';
+        narBanner.spellcheck = false;
+        narBanner.title = 'Bấm để chỉnh sửa lời dẫn';
+        narBanner.textContent = p.narration;
+        imgBox.appendChild(narBanner);
+    }
+
+    // Skeleton loader
+    const skeleton = document.createElement('div');
+    skeleton.className = 'pro-panel-skeleton';
+    skeleton.innerHTML = '<span style="color:#64748b;font-size:0.75rem;">Đang kết xuất tranh AI...</span>';
+    imgBox.appendChild(skeleton);
+
+    // Image element
+    const img = document.createElement('img');
+    img.alt = p.image_prompt || `Khung tranh ${p.panel_index || index + 1}`;
+    img.style.display = 'none';
+
+    img.onload = () => {
+        skeleton.style.display = 'none';
+        img.style.display = 'block';
+    };
+
+    let retries = 0;
+    img.onerror = () => {
+        const src = img.src || '';
+        if (retries < 1 && src.startsWith('http')) {
+            retries++;
+            img.src = src + (src.includes('?') ? '&' : '?') + 'r=' + Date.now();
+            return;
+        }
+        skeleton.innerHTML = '<span style="color:#ef4444;font-size:0.75rem;padding:10px;">Không tải được ảnh</span>';
+    };
+
+    img.src = p.final_image_url || p.image_url || '';
+    imgBox.appendChild(img);
+
+    // 2. Manga Speech Bubbles Overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'manga-bubble-overlay';
+
+    const dialogueText = (p.dialogue_text || p.dialogue || '').trim();
+    if (dialogueText.length > 0) {
+        const speakerName = p.speaker || 'Nhân vật';
+        const speakerBadgeClass = getSpeakerBadgeClass(speakerName);
+        const bType = p.bubble_type || 'speech';
+        const defaultPos = (index % 2 === 0) ? 'manga-pos-bottom-left' : 'manga-pos-bottom-right';
+
+        const bubble = document.createElement('div');
+        bubble.className = `manga-bubble ${defaultPos} bubble-${bType}`;
+
+        // Character name tag hidden per user request
+
+        const body = document.createElement('div');
+        body.className = 'manga-bubble-body';
+
+        const textEl = document.createElement('div');
+        textEl.className = 'manga-bubble-text';
+        textEl.contentEditable = 'true';
+        textEl.spellcheck = false;
+        textEl.title = 'Bấm trực tiếp để chỉnh sửa lời thoại';
+        textEl.textContent = dialogueText;
+        body.appendChild(textEl);
+        bubble.appendChild(body);
+
+        const actions = document.createElement('div');
+        actions.className = 'manga-bubble-actions';
+        actions.innerHTML = `
+            <button type="button" class="mb-act-btn" title="Đổi góc đặt bóng thoại" onclick="cycleBubblePos(this)">⇄ Vị trí</button>
+            <button type="button" class="mb-act-btn" title="Đổi kiểu bóng (Nói / Hét / Nghĩ / Thì thầm)" onclick="cycleBubbleType(this)">💭 Kiểu</button>
+            <button type="button" class="mb-act-btn btn-del" title="Xóa bóng thoại" onclick="deleteBubble(this)">✕</button>
+        `;
+        bubble.appendChild(actions);
+        overlay.appendChild(bubble);
+    }
+
+    imgBox.appendChild(overlay);
+    inner.appendChild(imgBox);
+
+    panelWrap.appendChild(inner);
+    container.appendChild(panelWrap);
+}
+
+// Interactive Manga Speech Bubble Helpers
+function cycleBubblePos(btn) {
+    const bubble = btn.closest('.manga-bubble');
+    if (!bubble) return;
+    const positions = ['manga-pos-bottom-left', 'manga-pos-bottom-right', 'manga-pos-top-right', 'manga-pos-top-left'];
+    const currentPos = positions.find(p => bubble.classList.contains(p)) || positions[0];
+    bubble.classList.remove(currentPos);
+    const nextPos = positions[(positions.indexOf(currentPos) + 1) % positions.length];
+    bubble.classList.add(nextPos);
+}
+
+function cycleBubbleType(btn) {
+    const bubble = btn.closest('.manga-bubble');
+    if (!bubble) return;
+    const types = ['bubble-speech', 'bubble-shout', 'bubble-thought', 'bubble-narration', 'bubble-whisper'];
+    const currentType = types.find(t => bubble.classList.contains(t)) || types[0];
+    bubble.classList.remove(currentType);
+    const nextType = types[(types.indexOf(currentType) + 1) % types.length];
+    bubble.classList.add(nextType);
+}
+
+function cycleSpeakerTag(tagEl) {
+    const tags = ['speaker-hero', 'speaker-companion', 'speaker-villain', 'speaker-narrator'];
+    const currentTag = tags.find(t => tagEl.classList.contains(t)) || tags[0];
+    tagEl.classList.remove(currentTag);
+    const nextTag = tags[(tags.indexOf(currentTag) + 1) % tags.length];
+    tagEl.classList.add(nextTag);
+}
+
+function deleteBubble(btn) {
+    const bubble = btn.closest('.manga-bubble');
+    if (bubble) bubble.remove();
+}
+
+function addBubbleToPanel(panelWrapId) {
+    const panelWrap = document.getElementById(panelWrapId);
+    if (!panelWrap) return;
+    let overlay = panelWrap.querySelector('.manga-bubble-overlay');
+    if (!overlay) {
+        const container = panelWrap.querySelector('.manga-panel-container') || panelWrap;
+        overlay = document.createElement('div');
+        overlay.className = 'manga-bubble-overlay';
+        container.appendChild(overlay);
+    }
+    const bubble = document.createElement('div');
+    bubble.className = 'manga-bubble manga-pos-bottom-right bubble-speech';
+    bubble.innerHTML = `
+        <div class="manga-bubble-body">
+            <div class="manga-bubble-text" contenteditable="true" spellcheck="false" title="Bấm để chỉnh sửa lời thoại">Nhập lời thoại mới...</div>
+        </div>
+        <div class="manga-bubble-actions">
+            <button type="button" class="mb-act-btn" title="Đổi góc đặt bóng thoại" onclick="cycleBubblePos(this)">⇄ Vị trí</button>
+            <button type="button" class="mb-act-btn" title="Đổi kiểu bóng (Nói / Hét / Nghĩ / Thì thầm)" onclick="cycleBubbleType(this)">💭 Kiểu</button>
+            <button type="button" class="mb-act-btn btn-del" title="Xóa bóng thoại" onclick="deleteBubble(this)">✕</button>
+        </div>
+    `;
+    overlay.appendChild(bubble);
+    const textEl = bubble.querySelector('.manga-bubble-text');
+    if (textEl) {
+        textEl.focus();
+        const range = document.createRange();
+        range.selectNodeContents(textEl);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
+}
+
+function regenPanelImage(panelWrapId) {
+    const panelWrap = document.getElementById(panelWrapId);
+    if (!panelWrap) return;
+    const img = panelWrap.querySelector('img');
+    const skeleton = panelWrap.querySelector('.pro-panel-skeleton');
+    if (img && skeleton) {
+        skeleton.style.display = 'flex';
+        skeleton.innerHTML = '<span style="color:#38bdf8;font-size:0.75rem;">Đang làm mới tranh...</span>';
+        img.style.display = 'none';
+        const currentSrc = img.src.split('?')[0];
+        img.src = `${currentSrc}?t=${Date.now()}`;
+        img.onload = () => {
+            skeleton.style.display = 'none';
+            img.style.display = 'block';
+        };
+    }
+}
+
+// Bind to window for HTML inline calls
+window.cycleBubblePos = cycleBubblePos;
+window.cycleBubbleType = cycleBubbleType;
+window.cycleSpeakerTag = cycleSpeakerTag;
+window.deleteBubble = deleteBubble;
+window.addBubbleToPanel = addBubbleToPanel;
+window.regenPanelImage = regenPanelImage;
+
+// ============================================================
+// NARRAI PRO — STORYBOARD DIRECTOR, READING FLOW & PANELING COMPOSITOR
+// ============================================================
+
+window.currentReadingFlow = 'webtoon'; // 'webtoon' (LTR) or 'manga' (RTL)
+
+function setReadingFlow(flow) {
+    window.currentReadingFlow = flow;
+    const pages = document.querySelectorAll('.pro-comic-page');
+    pages.forEach(p => {
+        p.classList.remove('flow-manga', 'flow-webtoon');
+        p.classList.add(flow === 'manga' ? 'flow-manga' : 'flow-webtoon');
+    });
+
+    // Update active button state in Storyboard Deck
+    document.querySelectorAll('.sb-flow-btn').forEach(b => {
+        if (b.dataset.flow === flow) {
+            b.classList.add('active');
+        } else {
+            b.classList.remove('active');
+        }
+    });
+
+    // Update flow indicator labels
+    document.querySelectorAll('.reading-flow-indicator').forEach(ind => {
+        if (flow === 'manga') {
+            ind.innerHTML = '<span class="flow-direction-icon">◂</span> DÒNG ĐỌC: PHẢI ➔ TRÁI (MANGA CHUẨN)';
+        } else {
+            ind.innerHTML = '<span class="flow-direction-icon">▸</span> DÒNG ĐỌC: TRÁI ➔ PHẢI (WEBTOON HIỆN ĐẠI)';
+        }
+    });
+}
+window.setReadingFlow = setReadingFlow;
+
+const STORYBOARD_ACT_DEFS = [
+    {
+        actNumber: 'I',
+        name: 'KHỞI TẠO BỐI CẢNH & GẶP GỠ',
+        enName: 'ESTABLISHING & SETUP',
+        badgeColor: '#0284c7',
+        tagline: 'Mở đầu câu chuyện, giới thiệu thế giới và tạo lập xung đột ban đầu.'
+    },
+    {
+        actNumber: 'II',
+        name: 'DIỄN BIẾN, XUNG ĐỘT & ĐỐI ĐẦU',
+        enName: 'RISING ACTION & CONFLICT',
+        badgeColor: '#F59E0B',
+        tagline: 'Mâu thuẫn bùng nổ, hành động dồn dập, đối thoại kịch tính và thử thách sinh tử.'
+    },
+    {
+        actNumber: 'III',
+        name: 'CAO TRÀO & BƯỚC NGOẶT ĐỊNH MỆNH',
+        enName: 'CLIMAX & RESOLUTION',
+        badgeColor: '#dc2626',
+        tagline: 'Đòn quyết định phân định thắng bại, bí mật hé lộ và mở ra hành trình tiếp nối.'
+    }
+];
+
+function groupPanelsIntoStoryboardActs(panels) {
+    if (!Array.isArray(panels) || panels.length === 0) return [];
+
+    // Check if panels already have distinct scene_id (S01, S02, S03)
+    const sceneIds = [...new Set(panels.map(p => p.scene_id).filter(Boolean))];
+    if (sceneIds.length > 1) {
+        const acts = [];
+        sceneIds.forEach((scId, idx) => {
+            const actPanels = panels.filter(p => p.scene_id === scId);
+            const def = STORYBOARD_ACT_DEFS[idx % STORYBOARD_ACT_DEFS.length];
+            acts.push({
+                ...def,
+                sceneId: scId,
+                location: actPanels[0]?.location || '',
+                panels: actPanels
+            });
+        });
+        return acts;
+    }
+
+    // Default 3-Act Storyboard Split
+    const total = panels.length;
+    const countPerAct = Math.max(2, Math.ceil(total / 3));
+    const acts = [];
+
+    for (let a = 0; a < 3; a++) {
+        const start = a * countPerAct;
+        const slice = panels.slice(start, start + countPerAct);
+        if (slice.length > 0) {
+            const def = STORYBOARD_ACT_DEFS[a];
+            acts.push({
+                ...def,
+                sceneId: `S0${a + 1}`,
+                location: slice[0]?.location || '',
+                panels: slice
+            });
+        }
+    }
+    return acts;
+}
+
+function renderStoryboardDirectorDeck(totalPanels, actsCount, container) {
+    const deck = document.createElement('div');
+    deck.className = 'storyboard-director-deck';
+
+    deck.innerHTML = `
+        <div class="sb-info-group">
+            <span class="sb-badge-main">🎬 STORYBOARD DIRECTOR</span>
+            <div class="sb-title-wrap">
+                <div class="sb-title">
+                    <span>Bảng Phân Cảnh & Paneling Truyện Tranh</span>
+                    <span style="color:#38bdf8; font-size:0.85rem; font-weight:700;">[${actsCount} Hồi • ${totalPanels} Khung Tranh]</span>
+                </div>
+                <div class="sb-subtitle">Bố cục Paneling động theo kịch bản chuẩn • Bong bóng thoại hình oval đứng Manga</div>
+            </div>
+        </div>
+        <div class="sb-flow-controls">
+            <span class="sb-flow-label">Dòng Đọc:</span>
+            <button type="button" class="sb-flow-btn ${window.currentReadingFlow === 'webtoon' ? 'active' : ''}" data-flow="webtoon" onclick="setReadingFlow('webtoon')">
+                🌐 Webtoon (Trái ➔ Phải)
+            </button>
+            <button type="button" class="sb-flow-btn ${window.currentReadingFlow === 'manga' ? 'active' : ''}" data-flow="manga" onclick="setReadingFlow('manga')">
+                🇯🇵 Manga (Phải ➔ Trái)
+            </button>
+        </div>
+    `;
+
+    container.appendChild(deck);
+}
+
+function renderStoryboardAct(act, actIndex, grid) {
+    const actSection = document.createElement('section');
+    actSection.className = 'storyboard-act-section';
+    actSection.id = `storyboard-act-${actIndex + 1}`;
+
+    // 1. Act Header Bar
+    const header = document.createElement('div');
+    header.className = 'storyboard-act-header';
+
+    const titleBox = document.createElement('div');
+    titleBox.className = 'act-title-box';
+
+    const badge = document.createElement('span');
+    badge.className = 'act-badge';
+    badge.style.background = act.badgeColor || '#F59E0B';
+    badge.textContent = `HỒI ${act.actNumber}`;
+    titleBox.appendChild(badge);
+
+    const name = document.createElement('h3');
+    name.className = 'act-name';
+    name.textContent = act.name;
+    titleBox.appendChild(name);
+
+    if (act.location) {
+        const locTag = document.createElement('span');
+        locTag.className = 'act-location-tag';
+        locTag.textContent = `📍 ${act.location}`;
+        titleBox.appendChild(locTag);
+    }
+
+    header.appendChild(titleBox);
+
+    // Reading Flow Indicator
+    const flowInd = document.createElement('div');
+    flowInd.className = 'reading-flow-indicator';
+    const isManga = window.currentReadingFlow === 'manga';
+    flowInd.innerHTML = isManga
+        ? '<span class="flow-direction-icon">◂</span> DÒNG ĐỌC: PHẢI ➔ TRÁI (MANGA CHUẨN)'
+        : '<span class="flow-direction-icon">▸</span> DÒNG ĐỌC: TRÁI ➔ PHẢI (WEBTOON HIỆN ĐẠI)';
+    header.appendChild(flowInd);
+
+    actSection.appendChild(header);
+
+    // 2. Paneling Page Grid
+    const pageGrid = document.createElement('div');
+    const flowClass = window.currentReadingFlow === 'manga' ? 'flow-manga' : 'flow-webtoon';
+    pageGrid.className = `pro-comic-page ${flowClass}`;
+
+    act.panels.forEach((p, pIdx) => {
+        renderProComicPanel(p, pIdx, pageGrid, act);
+    });
+
+    actSection.appendChild(pageGrid);
+    grid.appendChild(actSection);
+}
+
+// ============================================================
+// NARRAI PRO — Main Comic Generation (uses generate-pro)
+// ============================================================
 
 async function adaptToComic() {
     let text = document.getElementById('storyOutput')?.innerText?.trim() || "";
@@ -1804,65 +2325,112 @@ async function adaptToComic() {
         text = document.getElementById('initialPrompt')?.value?.trim() || "";
     }
     if (!text || text.length < 5) {
-        text = "Một câu chuyện hành động kịch tính và hào hùng, nhân vật chính bước lên đỉnh núi giữa trời mây phiêu lưu.";
+        text = "Một câu chuyện hành động kịch tính và hào hùng, nhân vật chính bước lên con đường chinh phục đỉnh cao giữa giang hồ hiểm ác.";
     }
-    
+
     document.getElementById('editorView').style.display = 'none';
     document.getElementById('comicView').style.display = 'block';
     if (typeof BackgroundManager !== 'undefined') BackgroundManager.setContext('comic');
-    
+
+    // Load stability config silently (no UI shown to user)
     if (!stabilityConfigLoaded) {
         loadStabilityConfig();
     }
 
     const grid = document.getElementById('comicGrid');
 
-    // Nếu nội dung không đổi và đã có tranh hiển thị -> giữ nguyên
+    // Cache: if same text + already rendered, keep
     if (hasGeneratedComic && text === lastComicText && grid.children.length > 0) {
         return;
     }
-    
+
     lastComicText = text;
     hasGeneratedComic = true;
-    
+
     grid.innerHTML = '';
     const loader = document.getElementById('comicLoading');
     loader.style.display = 'block';
-    
+    proResetProgress();
+
+    // Friendly Animated Step Progress
+    proAdvanceProgress(0); // Phân tích ý tưởng
+    await new Promise(r => setTimeout(r, 500));
+    proAdvanceProgress(1); // Xây dựng cốt truyện
+    await new Promise(r => setTimeout(r, 500));
+    proAdvanceProgress(2); // Thiết kế nhân vật
+    await new Promise(r => setTimeout(r, 500));
+    proAdvanceProgress(3); // Phân cảnh truyện tranh
+    await new Promise(r => setTimeout(r, 500));
+
     try {
-        const res = await fetch(`${API_URL}/comic/generate`, {
+        proAdvanceProgress(4); // Tạo tranh AI
+
+        const res = await fetch(`${API_URL}/comic/generate-pro`, {
             method: 'POST',
             headers: authHeaders(),
             body: JSON.stringify({
                 story_id: globalData.storyId || null,
                 story_text: text.substring(0, 30000),
-                enhancement_mode: currentEnhancementMode,
-                strength: currentEnhancementStrength
+                genre: '',
+                style: ''
             })
         });
+
         if (!res.ok) {
-            let errorMessage = `Comic API lỗi (${res.status})`;
-            try {
-                const errorData = await res.json();
-                errorMessage = errorData.message || errorData.detail || errorMessage;
-            } catch (_) {}
-            throw new Error(errorMessage);
+            let errMsg = `API lỗi (${res.status})`;
+            try { const ed = await res.json(); errMsg = ed.message || ed.detail || errMsg; } catch(_) {}
+            throw new Error(errMsg);
         }
+
         const data = await res.json();
+        proAdvanceProgress(5); // Hoàn thiện comic
+        await new Promise(r => setTimeout(r, 400));
+
         loader.style.display = 'none';
-        
+        proCompleteProgress();
+
         if (data.status === 'success') {
             if (!Array.isArray(data.panels) || data.panels.length === 0) {
-                throw new Error('Comic Agent không tạo được khung tranh.');
+                throw new Error('Không tạo được khung tranh.');
             }
-            data.panels.forEach((p, index) => {
-                renderComicPanel(p, index, grid);
+
+            // Render using Storyboard Director, Reading Flow & Paneling Engine
+            const acts = groupPanelsIntoStoryboardActs(data.panels);
+            renderStoryboardDirectorDeck(data.panels.length, acts.length, grid);
+            acts.forEach((act, actIdx) => {
+                renderStoryboardAct(act, actIdx, grid);
             });
+
         } else {
             alert('Lỗi tạo truyện tranh: ' + (data.message || data.detail || 'Lỗi hệ thống'));
         }
+
     } catch(e) {
         loader.style.display = 'none';
+        console.warn('[NarrAI Pro] generate-pro failed, trying generate fallback:', e.message);
+        try {
+            const res2 = await fetch(`${API_URL}/comic/generate`, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({
+                    story_id: globalData.storyId || null,
+                    story_text: text.substring(0, 30000),
+                    enhancement_mode: currentEnhancementMode,
+                    strength: currentEnhancementStrength
+                })
+            });
+            if (res2.ok) {
+                const data2 = await res2.json();
+                if (data2.status === 'success' && Array.isArray(data2.panels)) {
+                    const acts = groupPanelsIntoStoryboardActs(data2.panels);
+                    renderStoryboardDirectorDeck(data2.panels.length, acts.length, grid);
+                    acts.forEach((act, actIdx) => {
+                        renderStoryboardAct(act, actIdx, grid);
+                    });
+                    return;
+                }
+            }
+        } catch(e2) { console.warn('Fallback also failed:', e2); }
         alert(`Không thể tạo truyện tranh: ${e.message}`);
     }
 }
@@ -1873,9 +2441,95 @@ function backToEditor() {
     if (typeof BackgroundManager !== 'undefined') BackgroundManager.setContext('editor');
 }
 
+// ============================================================
+// NARRAI — AI Studio Chatbot Background Controller
+// ============================================================
+const AIStudioChat = {
+    panel: null,
+    artLayer: null,
+    holoLayer: null,
+
+    init() {
+        this.panel = document.getElementById('aiCopilotPanel');
+        this.artLayer = document.getElementById('aiStudioArtLayer');
+        this.holoLayer = document.getElementById('aiStudioHolograms');
+        if (!this.panel) return;
+
+        // Input typing listeners
+        const inputs = [
+            document.getElementById('chatInputText'),
+            document.getElementById('chatInput'),
+            document.getElementById('aiCustomInstruction')
+        ];
+
+        inputs.forEach(inp => {
+            if (!inp) return;
+            inp.addEventListener('focus', () => this.setState('typing'));
+            inp.addEventListener('input', () => this.setState('typing'));
+            inp.addEventListener('blur', () => {
+                if (this.panel && !this.panel.classList.contains('state-thinking')) {
+                    this.setState('idle');
+                }
+            });
+        });
+
+        // Enter key to send message
+        const chatInputText = document.getElementById('chatInputText');
+        if (chatInputText) {
+            chatInputText.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendAssistantMessage();
+                }
+            });
+        }
+
+        const chatInput = document.getElementById('chatInput');
+        if (chatInput) {
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendChatMessage();
+                }
+            });
+        }
+
+        // Subtle Parallax Effect on Mouse Move
+        this.panel.addEventListener('mousemove', (e) => {
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            const rect = this.panel.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width - 0.5;
+            const y = (e.clientY - rect.top) / rect.height - 0.5;
+
+            if (this.artLayer) {
+                this.artLayer.style.transform = `translate3d(${x * 6}px, ${y * 6}px, 0)`;
+            }
+            if (this.holoLayer) {
+                this.holoLayer.style.transform = `translate3d(${x * -10}px, ${y * -10}px, 0)`;
+            }
+        });
+
+        this.panel.addEventListener('mouseleave', () => {
+            if (this.artLayer) this.artLayer.style.transform = '';
+            if (this.holoLayer) this.holoLayer.style.transform = '';
+        });
+    },
+
+    setState(state) {
+        if (!this.panel) return;
+        this.panel.classList.remove('state-typing', 'state-thinking');
+        if (state === 'typing') {
+            this.panel.classList.add('state-typing');
+        } else if (state === 'thinking') {
+            this.panel.classList.add('state-thinking');
+        }
+    }
+};
+
 // =================== INTERACTIVE CHAT UI ===================
 async function sendAssistantMessage() {
     const input = document.getElementById('chatInputText');
+    if (!input) return;
     const msg = input.value.trim();
     if (!msg) return;
     
@@ -1883,12 +2537,13 @@ async function sendAssistantMessage() {
     addMessageToChat('user', msg);
     input.value = '';
     
-    // Show AI Loading
+    // Show AI Loading & Activate Thinking Background
     const loader = document.getElementById('aiLoading');
-    loader.style.display = 'block';
+    if (loader) loader.style.display = 'block';
+    if (typeof AIStudioChat !== 'undefined') AIStudioChat.setState('thinking');
     
     try {
-        const storyContext = document.getElementById('storyOutput').innerText.slice(-6000);
+        const storyContext = document.getElementById('storyOutput')?.innerText?.slice(-6000) || '';
         const res = await fetch(`${API_URL}/copilot-event`, {
             method: 'POST',
             headers: authHeaders(),
@@ -1904,16 +2559,17 @@ async function sendAssistantMessage() {
         });
         
         const data = await res.json();
-        loader.style.display = 'none';
+        if (loader) loader.style.display = 'none';
+        if (typeof AIStudioChat !== 'undefined') AIStudioChat.setState('idle');
         
         if (!res.ok || data.status !== 'success') {
-            addMessageToChat('ai', `Lỗi Copilot: ${data.message || data.detail || 'Không thể xử lý yêu cầu.'}`);
+            addMessageToChat('ai', data.message || data.detail || 'Không thể xử lý yêu cầu lúc này.');
         } else {
-            const action = data.data.action;
-            const params = data.data.action_params || {};
+            const action = data.data?.action || 'reply_user';
+            const params = data.data?.action_params || {};
 
             if (action === 'reply_user') {
-                addMessageToChat('ai', params.message || '...');
+                addMessageToChat('ai', params.message || 'Tôi đã nhận được tin nhắn của bạn.');
             } else if (action === 'command_writer') {
                 if (params.message) addMessageToChat('ai', params.message);
                 await continueWritingWithInstruction(params.instruction);
@@ -1921,19 +2577,45 @@ async function sendAssistantMessage() {
                 addMessageToChat('ai', 'Trợ lý: Đang yêu cầu viết lại vì bản nháp không đạt yêu cầu: ' + (params.critique || ''));
                 await continueWritingWithInstruction(params.fix_instruction || params.instruction || params.critique);
             } else {
-                addMessageToChat('ai', 'Đã xử lý xong tác vụ: ' + action);
+                addMessageToChat('ai', params.message || ('Đã xử lý xong tác vụ: ' + action));
             }
         }
     } catch (err) {
-        loader.style.display = 'none';
-        addMessageToChat('ai', 'Lỗi kết nối máy chủ Copilot.');
+        if (loader) loader.style.display = 'none';
+        if (typeof AIStudioChat !== 'undefined') AIStudioChat.setState('idle');
+        addMessageToChat('ai', 'Lỗi kết nối máy chủ Copilot. Vui lòng thử lại.');
     }
 }
-                function addMessageToChat(role, text) {
+
+function formatMessageText(text) {
+    if (!text) return '';
+    let t = String(text);
+    // If text starts with JSON wrapper, unpack message
+    if (t.trim().startsWith('{') && t.includes('"message"')) {
+        try {
+            const p = JSON.parse(t.trim());
+            if (p.action_params?.message) t = p.action_params.message;
+            else if (p.message) t = p.message;
+        } catch (_) {
+            const m = t.match(/"message"\s*:\s*"([\s\S]*?)"(?:\s*,\s*"|\s*\}\s*\})/);
+            if (m) t = m[1];
+        }
+    }
+    // Escape HTML then render basic markdown
+    t = t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    t = t.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    t = t.replace(/`([^`]+)`/g, '<code style="background:rgba(56,189,248,0.15);padding:1px 4px;border-radius:3px;color:#38bdf8;">$1</code>');
+    t = t.replace(/\n/g, '<br>');
+    return t;
+}
+
+function addMessageToChat(role, text) {
     const history = document.getElementById('chatHistory');
+    if (!history) return;
     const msgDiv = document.createElement('div');
     msgDiv.className = role === 'user' ? 'chat-message chat-user' : 'chat-message chat-ai';
-    msgDiv.innerText = text;
+    msgDiv.innerHTML = formatMessageText(text);
     history.appendChild(msgDiv);
     history.scrollTop = history.scrollHeight;
 }
@@ -1953,6 +2635,8 @@ async function continueWriting(userInstruction = '') {
     chatHistory.innerHTML += '<div class="chat-message chat-user">Viet tiep chuong moi</div>';
     chatHistory.innerHTML += '<div class="chat-message chat-ai" style="color:#d97706">AI dang viet chuong moi...</div>';
     chatHistory.scrollTop = chatHistory.scrollHeight;
+
+    if (typeof AIStudioChat !== 'undefined') AIStudioChat.setState('thinking');
 
     // Use memory-based endpoint if session exists, fallback to /api/chat
     if (globalData.sessionId) {
@@ -1982,7 +2666,7 @@ async function continueWriting(userInstruction = '') {
                 const { done, value } = await reader.read();
                 if (done) break;
                 const chunk = decoder.decode(value, { stream: true });
-            stopLatencySensor();
+                stopLatencySensor();
                 newChapter += chunk;
                 
                 // Live update
@@ -2005,6 +2689,7 @@ async function continueWriting(userInstruction = '') {
                 errorMessage.style.color = 'red';
                 errorMessage.textContent = generationError;
                 chatHistory.appendChild(errorMessage);
+                if (typeof AIStudioChat !== 'undefined') AIStudioChat.setState('idle');
                 return;
             }
             
@@ -2018,11 +2703,15 @@ async function continueWriting(userInstruction = '') {
             // Remove loading message in chat
             const msgs = chatHistory.querySelectorAll('.chat-message');
             if (msgs.length > 0) msgs[msgs.length - 1].remove();
-            chatHistory.innerHTML += '<div class="chat-message chat-ai">Da viet xong chuong moi! Ban co the tiep tuc hoac ket thuc truyen.</div>';
-            chatHistory.scrollTop = chatHistory.scrollHeight;
+            chatHistory.innerHTML += '<div class="chat-message chat-ai">Da viet xong chuong moi! Ban co the tiep tuc ra lenh hoac chinh sua truc tiep.</div>';
+            
+            // Update words count
+            updateWordCount();
 
         } catch (err) {
             chatHistory.innerHTML += '<div class="chat-message chat-ai" style="color:red">Lỗi kết nối. Vui lòng thử lại!</div>';
+        } finally {
+            if (typeof AIStudioChat !== 'undefined') AIStudioChat.setState('idle');
         }
     } else {
         // Fallback: use legacy /api/chat
@@ -2046,6 +2735,8 @@ async function continueWriting(userInstruction = '') {
             updateWordCount();
         } catch (err) {
             chatHistory.innerHTML += '<div class="chat-message chat-ai" style="color:red">Lỗi kết nối.</div>';
+        } finally {
+            if (typeof AIStudioChat !== 'undefined') AIStudioChat.setState('idle');
         }
     }
 }
@@ -2153,3 +2844,13 @@ async function endStory() {
         }
     }
 }
+
+// Initialize AI Studio Chatbot Background Controller
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof AIStudioChat !== 'undefined') AIStudioChat.init();
+    });
+} else {
+    if (typeof AIStudioChat !== 'undefined') AIStudioChat.init();
+}
+

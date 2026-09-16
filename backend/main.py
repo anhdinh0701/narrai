@@ -696,6 +696,150 @@ def create_comic(request: ComicRequest, db: Session = Depends(get_db), current_u
         
     return {"status": "success", "comic_id": comic.id, "panels": panels_response}
 
+
+# ================= PRO COMIC GENERATION (Character Bible + Panel Planner) =================
+
+class ProComicRequest(BaseModel):
+    story_id: Optional[int] = None
+    story_text: Optional[str] = ""
+    genre: Optional[str] = ""
+    style: Optional[str] = ""
+    enhancement_mode: Optional[str] = "none"
+    strength: Optional[float] = 0.35
+
+@app.post("/api/comic/generate-pro")
+def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Pro comic generation pipeline:
+    1. ProComicAgent: builds Character Bible + Panel Plan with story logic
+    2. ComfyUI: generates each panel image using rich, character-consistent prompts
+    3. Stability AI: auto-enhances (if available)
+    4. Returns panels + character_bible for frontend compositor
+    """
+    user_id = current_user.id if current_user else None
+    if not user_id:
+        first_user = db.query(User).first()
+        if first_user:
+            user_id = first_user.id
+
+    effective_text = (request.story_text or "").strip()
+    if not effective_text or len(effective_text) < 5:
+        if request.story_id:
+            s_rec = db.query(Story).filter(Story.id == request.story_id).first()
+            if s_rec and s_rec.story_content:
+                effective_text = s_rec.story_content
+        if not effective_text:
+            effective_text = "Mot cau chuyen hanh dong kich tinh va hao hung, nhan vat chinh buoc len dinh cao."
+
+    # Step 1: Generate Character Bible + Panel Plan
+    from agents.pro_comic_agent import ProComicAgent
+    pro_agent = ProComicAgent()
+    script_data = pro_agent.generate(
+        story_text=effective_text,
+        genre=request.genre or "",
+        style=request.style or ""
+    )
+
+    character_bible = script_data.get("character_bible", [])
+    story_setting = script_data.get("story_setting", "")
+    panels_plan = script_data.get("panels", [])
+
+    # Target 12 to 16 panels for a rich, complete comic chapter
+    comfy_info = get_comfyui_status()
+    max_panels = 12 if comfy_info.get("connected") else 16
+    if len(panels_plan) > max_panels:
+        panels_plan = panels_plan[:max_panels]
+
+    # Step 2: Save Comic to DB
+    comic = Comic(user_id=user_id, story_id=request.story_id, title="Pro Comic")
+    db.add(comic)
+    db.commit()
+    db.refresh(comic)
+
+    # Step 3: Generate images for each panel
+    panels_response = []
+    req_mode = (request.enhancement_mode or "none").strip().lower()
+    strength = request.strength if request.strength is not None else 0.35
+
+    # Auto-select enhancement: if Stability AI available, use upscale for quality
+    if req_mode == "none" and stability_service.is_available():
+        auto_mode = "upscale"
+    else:
+        auto_mode = req_mode
+
+    for idx, item in enumerate(panels_plan):
+        p_img_prompt = item.get("image_prompt") or "manga style panel, high quality"
+        p_dialogue = item.get("dialogue") or item.get("dialogue_text") or ""
+        p_layout = item.get("layout_type") or "square"
+        p_idx = item.get("panel_index", idx + 1)
+
+        # Stage 1: ComfyUI image generation with rich character-consistent prompt
+        raw_image = generate_comic_panel_image(p_img_prompt, seed=comic.id + p_idx)
+
+        # Stage 2: Auto enhancement (Stability AI) — only first 2 panels in initial batch to avoid timeout
+        panel_enh_mode = auto_mode if idx < 2 else "none"
+
+        proc_result = post_processor.process_panel_image(
+            comic_id=comic.id,
+            panel_index=p_idx,
+            raw_image=raw_image,
+            prompt=p_img_prompt,
+            mode=panel_enh_mode,
+            strength=strength
+        )
+
+        panel = ComicPanel(
+            comic_id=comic.id,
+            panel_index=p_idx,
+            image_prompt=p_img_prompt,
+            dialogue_text=p_dialogue,
+            layout_type=p_layout,
+            image_url=proc_result["final_url"],
+            original_image_url=proc_result["original_url"],
+            processed_image_url=proc_result["processed_url"],
+            final_image_url=proc_result["final_url"],
+            enhancement_provider=proc_result["provider"],
+            enhancement_mode=proc_result["mode"],
+            enhancement_status=proc_result["status"]
+        )
+        db.add(panel)
+        db.commit()
+        db.refresh(panel)
+
+        panels_response.append({
+            "id": panel.id,
+            "panel_index": panel.panel_index,
+            "image_url": panel.image_url,
+            "original_image_url": panel.original_image_url,
+            "processed_image_url": panel.processed_image_url,
+            "final_image_url": panel.final_image_url,
+            "enhancement_provider": panel.enhancement_provider,
+            "enhancement_mode": panel.enhancement_mode,
+            "enhancement_status": panel.enhancement_status,
+            "image_prompt": panel.image_prompt,
+            "dialogue_text": p_dialogue,
+            "layout_type": p_layout,
+            # Extra Pro fields for frontend compositor
+            "bubble_type": item.get("bubble_type", "speech" if p_dialogue else "none"),
+            "speaker": item.get("speaker", ""),
+            "narration": item.get("narration", ""),
+            "location": item.get("location", ""),
+            "time_of_day": item.get("time_of_day", ""),
+            "emotion": item.get("emotion", ""),
+            "scene_id": item.get("scene_id", ""),
+            "shot_type": item.get("shot_type", ""),
+            "camera_angle": item.get("camera_angle", "")
+        })
+
+    return {
+        "status": "success",
+        "comic_id": comic.id,
+        "character_bible": character_bible,
+        "story_setting": story_setting,
+        "panels": panels_response
+    }
+
+
 class EnhancePanelRequest(BaseModel):
     panel_id: int
     mode: str = "upscale"  # "upscale" or "enhance"
@@ -918,29 +1062,35 @@ class CopilotEventRequest(BaseModel):
 @app.post("/api/copilot-event")
 def copilot_event(request: CopilotEventRequest, current_user: User = Depends(get_current_user)):
     try:
-        memory = get_story_session(request.session_id, current_user)
+        memory = None
+        if current_user:
+            db = SessionLocal()
+            try:
+                story_query = db.query(Story).filter(Story.user_id == current_user.id)
+                if request.story_id:
+                    story_query = story_query.filter(Story.id == request.story_id)
+                elif request.session_id and request.session_id != 'temp':
+                    story_query = story_query.filter(Story.session_id == request.session_id)
+                else:
+                    story_query = None
 
-        if not current_user:
-            return JSONResponse(status_code=401, content={"status": "error", "message": "Chưa đăng nhập"})
-        db = SessionLocal()
-        try:
-            story_query = db.query(Story).filter(Story.user_id == current_user.id)
-            if request.story_id:
-                story_query = story_query.filter(Story.id == request.story_id)
-            else:
-                story_query = story_query.filter(Story.session_id == request.session_id)
-            story = story_query.first()
-            if not story:
-                return JSONResponse(status_code=404, content={"status": "error", "message": "Không tìm thấy phiên truyện hoặc không có quyền truy cập."})
-            if memory is None and story.memory_data:
-                memory = StoryMemory.from_dict(json.loads(story.memory_data))
-        finally:
-            db.close()
-        
+                if story_query:
+                    story = story_query.first()
+                    if story and story.memory_data:
+                        try:
+                            memory = StoryMemory.from_dict(json.loads(story.memory_data))
+                        except Exception:
+                            pass
+            finally:
+                db.close()
+
+        if memory is None and request.session_id:
+            memory = get_story_session(request.session_id, current_user)
+
         agent = get_copilot()
         # Copilot process the event and decides the action
         result = agent.process_event(request.event_type, request.event_data, memory)
-        
+
         # Safe print for Windows
         try:
             print(f"--- MASTER CONTROLLER THOUGHT ---")
@@ -949,26 +1099,28 @@ def copilot_event(request: CopilotEventRequest, current_user: User = Depends(get
             print(f"---------------------------------")
         except:
             pass
-            
-        
-        # Save memory changes to DB
+
+        # Save memory changes to DB if story exists
         if memory and current_user:
             db = SessionLocal()
             try:
                 story_query = db.query(Story).filter(Story.user_id == current_user.id)
                 if request.story_id:
                     story_query = story_query.filter(Story.id == request.story_id)
-                else:
+                elif request.session_id and request.session_id != 'temp':
                     story_query = story_query.filter(Story.session_id == request.session_id)
-                story = story_query.first()
-                if story:
-                    story.memory_data = memory_json(memory)
-                    db.commit()
+                else:
+                    story_query = None
+                if story_query:
+                    story = story_query.first()
+                    if story:
+                        story.memory_data = memory_json(memory)
+                        db.commit()
             except Exception as e:
                 pass
             finally:
                 db.close()
-                
+
         return {"status": "success", "data": result}
     except Exception as e:
         import traceback

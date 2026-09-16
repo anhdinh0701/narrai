@@ -2,12 +2,20 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
 }
 
-body.workspace-mode {
+*::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+body, body.workspace-mode {
     font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #F9FAFB;
-    color: #111827;
+    background-color: #070a13;
+    color: #ffffff;
     height: 100vh;
     overflow: hidden;
 }
@@ -19,31 +27,47 @@ body.workspace-mode {
     position: relative;
     z-index: 10;
     overflow: hidden;
+    background-color: transparent;
 }
 
-/* Sidebar (Left) */
+/* Sidebar (Khung menu bên trái - Màu đen mờ) */
 .sidebar {
     width: 250px;
     min-width: 250px;
     max-width: 250px;
     flex: 0 0 250px;
-    background-color: #1F2937;
-    color: white;
+    background: rgba(0, 0, 0, 0.58);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: #ffffff;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid #374151;
+    border-right: 1px solid rgba(255, 255, 255, 0.10);
     position: relative;
     z-index: 10;
     height: 100%;
     overflow-y: auto;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45);
 }
 .sidebar-header {
     padding: 20px;
-    border-bottom: 1px solid #374151;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .sidebar-header h1 {
-    font-size: 1.5em;
-    color: #818CF8;
+    font-size: 1.6em;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+    text-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
+}
+.sidebar-header h1 .gold-ai,
+.sidebar-header h1 span {
+    color: #F59E0B;
+    background: linear-gradient(135deg, #FFE082 0%, #F59E0B 60%, #D97706 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+    font-weight: 800;
 }
 .sidebar-menu {
     flex: 1;
@@ -54,7 +78,7 @@ body.workspace-mode {
     text-align: left;
     padding: 12px 15px;
     background: transparent;
-    color: #D1D5DB;
+    color: #94a3b8;
     border: none;
     border-radius: 8px;
     cursor: pointer;
@@ -63,26 +87,29 @@ body.workspace-mode {
     margin-bottom: 8px;
 }
 .nav-btn:hover {
-    background: #374151;
-    color: white;
+    background: rgba(30, 41, 59, 0.7);
+    color: #f8fafc;
 }
 .nav-btn.active {
-    background: #4F46E5;
+    background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
     color: white;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
 }
 .sidebar-footer {
     padding: 15px;
     text-align: center;
     font-size: 0.8em;
-    color: #9CA3AF;
-    border-top: 1px solid #374151;
+    color: #64748b;
+    border-top: 1px solid rgba(56, 189, 248, 0.15);
 }
 
-/* Main Editor (Center) */
+/* Main Editor (Center Panel - Unified Dark Glassmorphism) */
 .main-editor {
     flex: 1 1 auto;
     min-width: 0;
-    background-color: transparent;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -90,6 +117,7 @@ body.workspace-mode {
     position: relative;
     z-index: 10;
     height: 100%;
+    color: #ffffff;
 }
 
 /* Setup Flow in Main */
@@ -112,29 +140,41 @@ body.workspace-mode {
 .phase h2 {
     font-size: 1.8em;
     margin-bottom: 25px;
-    color: #111827;
+    color: #ffffff;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
 }
 
-/* Common form elements */
+/* Common form elements (Khung viết thể loại & nội dung - Màu đen mờ) */
 textarea {
     width: 100%;
     height: 120px;
     padding: 15px;
     font-size: 1em;
-    border: 2px solid #E5E7EB;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(0, 0, 0, 0.65);
+    color: #ffffff;
     border-radius: 8px;
     font-family: inherit;
     resize: vertical;
     margin-bottom: 20px;
-    transition: border-color 0.3s;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
 }
 textarea:focus {
     outline: none;
-    border-color: #4F46E5;
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.2);
 }
+textarea::placeholder {
+    color: rgba(255, 255, 255, 0.55);
+}
+
 .primary-btn {
-    background: #4F46E5;
-    color: white;
+    background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
+    color: #ffffff;
     border: none;
     padding: 14px 30px;
     font-size: 1.05em;
@@ -143,56 +183,70 @@ textarea:focus {
     transition: 0.2s;
     width: 100%;
     font-weight: bold;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
 }
 .primary-btn:hover {
-    background: #4338CA;
+    background: linear-gradient(135deg, #1d4ed8 0%, #0369a1 100%);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    box-shadow: 0 6px 18px rgba(14, 165, 233, 0.5);
 }
 
 .secondary-btn {
-    background: #F3F4F6;
-    color: #374151;
-    border: 1px solid #D1D5DB;
+    background: rgba(0, 0, 0, 0.65);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
     padding: 8px 16px;
     border-radius: 6px;
     cursor: pointer;
     font-weight: 500;
+    transition: all 0.2s ease;
 }
-.secondary-btn:hover { background: #E5E7EB; }
+.secondary-btn:hover { 
+    background: rgba(255, 255, 255, 0.15); 
+    color: #ffffff;
+    border-color: #ffffff;
+}
 
-/* AI Chat box Phase 2 */
+/* AI Chat box Phase 2 (Khung hiện chữ - Màu trắng đục đồng bộ) */
 .chat-box {
-    border: 1px solid #E5E7EB;
+    border: 1px solid rgba(255, 255, 255, 0.26);
     border-radius: 12px;
     padding: 20px;
     height: 400px;
     overflow-y: auto;
-    background: #F9FAFB;
+    background: rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     margin-bottom: 15px;
     display: flex;
     flex-direction: column;
     gap: 15px;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.25), 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 .chat-message {
     padding: 12px 18px;
     border-radius: 15px;
     max-width: 85%;
     line-height: 1.5;
+    color: #ffffff;
 }
 .chat-user {
-    background: #4F46E5;
-    color: white;
+    background: linear-gradient(135deg, #2563eb, #0284c7);
+    color: #ffffff;
     align-self: flex-end;
     border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
 .chat-ai {
-    background: #FFFFFF;
-    color: #111827;
-    border: 1px solid #E5E7EB;
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-left: 3px solid #F59E0B;
     align-self: flex-start;
     border-bottom-left-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 .chat-input-area {
     display: flex;
@@ -204,42 +258,52 @@ textarea:focus {
     height: 60px;
 }
 .send-btn {
-    background: #4F46E5;
+    background: linear-gradient(135deg, #2563eb, #0284c7);
     color: white;
     border: none;
     padding: 0 25px;
     border-radius: 8px;
     cursor: pointer;
     font-weight: bold;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+    transition: all 0.2s ease;
+}
+.send-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.5);
 }
 
 .skip-btn {
-    background: transparent;
-    color: #EF4444;
-    border: 1px solid #EF4444;
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    border: 1px solid #ef4444;
     padding: 10px 20px;
     border-radius: 8px;
     cursor: pointer;
     width: 100%;
+    transition: all 0.2s ease;
 }
-.skip-btn:hover { background: #FEF2F2; }
+.skip-btn:hover { 
+    background: rgba(239, 68, 68, 0.25);
+    color: #ffffff;
+}
 
-
-/* Trending & Genre Sections */
+/* Trending & Genre Sections (Khung viết thể loại - Màu đen mờ) */
 .trending-section {
     margin-bottom: 25px;
-    background: rgba(255, 255, 255, 0.94);
+    background: rgba(0, 0, 0, 0.55);
     padding: 24px;
     border-radius: 16px;
-    border: 1px solid rgba(226, 232, 240, 0.9);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: #ffffff;
 }
 .label {
     font-weight: 700;
     margin-bottom: 14px;
-    color: #1E293B;
+    color: #ffffff;
     font-size: 0.98em;
     display: flex;
     align-items: center;
@@ -255,15 +319,12 @@ textarea:focus {
     max-height: 320px;
     overflow-y: auto;
     padding: 6px 4px;
-    scrollbar-width: thin;
-    scrollbar-color: #CBD5E1 transparent;
+    scrollbar-width: none !important;
 }
 .genre-cards-grid::-webkit-scrollbar {
-    width: 6px;
-}
-.genre-cards-grid::-webkit-scrollbar-thumb {
-    background-color: #CBD5E1;
-    border-radius: 4px;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 .genre-card {
@@ -272,11 +333,11 @@ textarea:focus {
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
-    border: 2px solid transparent;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
     transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.25s ease, border-color 0.25s ease;
     user-select: none;
-    background: #0F172A;
+    background: rgba(0, 0, 0, 0.7);
 }
 
 .genre-card-img {
@@ -294,7 +355,7 @@ textarea:focus {
 .genre-card-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.15) 0%, rgba(15, 23, 42, 0.75) 100%);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.82) 100%);
     transition: background 0.3s ease;
     display: flex;
     flex-direction: column;
@@ -337,8 +398,8 @@ textarea:focus {
 /* Hover State */
 .genre-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(59, 130, 246, 0.22), 0 0 14px rgba(59, 130, 246, 0.25);
-    border-color: rgba(96, 165, 250, 0.7);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5), 0 0 14px rgba(59, 130, 246, 0.35);
+    border-color: rgba(255, 255, 255, 0.5);
 }
 
 .genre-card:hover .genre-card-img {
@@ -347,7 +408,7 @@ textarea:focus {
 }
 
 .genre-card:hover .genre-card-overlay {
-    background: linear-gradient(180deg, rgba(30, 58, 138, 0.3) 0%, rgba(15, 23, 42, 0.88) 100%);
+    background: linear-gradient(180deg, rgba(30, 58, 138, 0.35) 0%, rgba(0, 0, 0, 0.9) 100%);
 }
 
 .genre-card:hover .genre-card-title {
@@ -366,7 +427,7 @@ textarea:focus {
 }
 
 .genre-card.selected .genre-card-overlay {
-    background: linear-gradient(180deg, rgba(30, 64, 175, 0.45) 0%, rgba(15, 23, 42, 0.9) 100%);
+    background: linear-gradient(180deg, rgba(30, 64, 175, 0.45) 0%, rgba(0, 0, 0, 0.92) 100%);
 }
 
 .genre-card.selected .genre-card-title {
@@ -379,28 +440,98 @@ textarea:focus {
     gap: 10px;
 }
 .trending-tag {
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
+    background: rgba(0, 0, 0, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     padding: 8px 16px;
     border-radius: 20px;
     font-size: 0.9em;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: #475569;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 .trending-tag:hover {
-    background: #EEF2FF;
-    color: #4F46E5;
-    border-color: #C7D2FE;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.4);
     transform: translateY(-1px);
 }
 .trending-tag.selected-tag {
-    background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%) !important;
+    background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%) !important;
     color: #FFFFFF !important;
     font-weight: 600;
-    border-color: #4F46E5 !important;
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+    border-color: #38bdf8 !important;
+    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4);
+}
+
+.genre-search {
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    width: 100%;
+    margin-bottom: 15px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+.genre-search:focus {
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
+}
+.genre-search::placeholder {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+/* Step 3 Max Controls */
+.pro-max-controls {
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.control-group label {
+    color: #ffffff;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.95em;
+}
+.control-group label span {
+    color: #F59E0B;
+}
+.pro-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    outline: none;
+}
+.pro-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
+    cursor: pointer;
+    transition: 0.2s;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.5);
+}
+.pro-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
 }
 
 /* Length selector */
@@ -412,15 +543,21 @@ textarea:focus {
 }
 .length-selector label {
     padding: 15px;
-    border: 1px solid #E5E7EB;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(0, 0, 0, 0.65);
+    color: #ffffff;
     border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 10px;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 .length-selector label:hover {
-    background: #F9FAFB;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 /* EDITOR VIEW */
@@ -430,12 +567,12 @@ textarea:focus {
     align-items: center;
     margin-bottom: 40px;
     padding-bottom: 20px;
-    border-bottom: 1px solid #E5E7EB;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 .editor-header h2 {
     font-size: 2em;
     font-family: 'Merriweather', serif;
-    color: #111827;
+    color: #ffffff;
 }
 .editor-actions {
     display: flex;
@@ -443,18 +580,31 @@ textarea:focus {
     gap: 15px;
 }
 #wordCount {
-    color: #6B7280;
+    color: rgba(255, 255, 255, 0.7);
     font-weight: 500;
 }
 
+/* Khung hiện chữ đồng bộ màu trắng đục */
 .story-canvas {
     font-family: 'Merriweather', 'Lora', serif;
     font-size: 1.15em;
-    line-height: 1.8;
-    color: #374151;
+    line-height: 1.9;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 12px;
+    padding: 30px 35px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     min-height: 60vh;
     outline: none;
     padding-bottom: 100px;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+.story-canvas:focus {
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.25);
 }
 .story-canvas p {
     margin-bottom: 1.5em;
@@ -488,77 +638,438 @@ textarea:focus {
     background: #374151;
 }
 
-/* AI Panel (Right) */
+/* ============================================================
+   AI STUDIO CHATBOT CINEMATIC BACKGROUND
+   Inspired by AI Storytelling Studio & Creative Robot Workspace
+   ============================================================ */
+
+/* AI Panel Container (Right Panel - Unified Dark Glassmorphism / Đen mờ) */
 .ai-panel {
-    width: 320px;
-    min-width: 320px;
-    max-width: 320px;
-    flex: 0 0 320px;
-    background-color: #F9FAFB;
-    border-left: 1px solid #E5E7EB;
+    width: 340px;
+    min-width: 340px;
+    max-width: 340px;
+    flex: 0 0 340px;
+    background: rgba(0, 0, 0, 0.58);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-left: 1px solid rgba(255, 255, 255, 0.10);
     display: flex;
     flex-direction: column;
     position: relative;
     z-index: 10;
     height: 100%;
+    overflow: hidden;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.45);
+    transition: box-shadow 0.5s ease;
 }
-.ai-panel-header {
-    padding: 20px;
-    border-bottom: 1px solid #E5E7EB;
-    background: #FFF;
-}
-.ai-panel-header h3 {
-    font-size: 1.2em;
-    color: #4F46E5;
-}
-.ai-panel-body {
-    padding: 20px;
-    overflow-y: auto;
-    flex: 1;
-}
-.ai-welcome {
-    background: #E0E7FF;
-    color: #3730A3;
-    padding: 15px;
-    border-radius: 8px;
-    font-size: 0.95em;
-    line-height: 1.5;
-}
-.ai-welcome b { color: #312E81; }
 
-.ai-card {
-    background: #FFF;
-    border: 1px solid #E5E7EB;
-    border-radius: 8px;
-    padding: 15px;
-    margin-top: 15px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+/* Dynamic Ambient Glow Stage for Assistant - Đã xóa background theo yêu cầu */
+.ai-studio-stage,
+.ai-studio-art-layer,
+.ai-studio-atmosphere,
+.ai-studio-particles,
+.ai-studio-holograms,
+.ai-studio-glass-overlay {
+    display: none !important;
+    background-image: none !important;
 }
-.ai-label {
-    font-size: 0.85em;
-    font-weight: 600;
-    color: #6B7280;
-    margin-bottom: 8px;
+
+/* Layer 1: Atmospheric Glow Lighting & Soft Ambient Vignette */
+.ai-studio-atmosphere {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+}
+
+.ai-glow-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(30px);
+    pointer-events: none;
+    transition: all 0.8s ease;
+}
+
+.orb-cyan {
+    top: 10%;
+    right: 5%;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.55) 0%, rgba(56, 189, 248, 0.25) 50%, transparent 70%);
+    animation: aiOrbFloatCyan 8s ease-in-out infinite alternate;
+}
+
+.orb-violet {
+    top: 40%;
+    left: 5%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, rgba(99, 102, 241, 0.15) 50%, transparent 70%);
+    animation: aiOrbFloatViolet 10s ease-in-out infinite alternate;
+}
+
+.orb-amber {
+    bottom: 5%;
+    right: 10%;
+    width: 160px;
+    height: 160px;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.28) 0%, transparent 70%);
+}
+
+.ai-studio-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 40% 30%, transparent 45%, rgba(7, 10, 19, 0.35) 80%, rgba(5, 8, 15, 0.6) 100%);
+}
+
+@keyframes aiOrbFloatCyan {
+    0% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+    50% { transform: translate(-12px, 15px) scale(1.15); opacity: 0.8; }
+    100% { transform: translate(8px, -12px) scale(0.95); opacity: 0.55; }
+}
+
+@keyframes aiOrbFloatViolet {
+    0% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+    50% { transform: translate(15px, -12px) scale(1.12); opacity: 0.65; }
+    100% { transform: translate(-8px, 10px) scale(0.92); opacity: 0.45; }
+}
+
+/* Layer 2: Floating Digital Dust / Data Sparkles */
+.ai-studio-particles {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+}
+
+.ai-particle {
+    position: absolute;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8, 0 0 16px rgba(56, 189, 248, 0.6);
+    opacity: 0;
+    animation: aiParticleFloat 10s linear infinite;
+}
+
+.pt1 { width: 3px; height: 3px; left: 18%; bottom: -10px; animation-duration: 8s; animation-delay: 0s; }
+.pt2 { width: 4px; height: 4px; left: 45%; bottom: -10px; animation-duration: 11s; animation-delay: 2s; background: #818cf8; }
+.pt3 { width: 3px; height: 3px; left: 72%; bottom: -10px; animation-duration: 7s; animation-delay: 4s; }
+.pt4 { width: 4px; height: 4px; left: 30%; bottom: -10px; animation-duration: 13s; animation-delay: 1s; }
+.pt5 { width: 5px; height: 5px; left: 85%; bottom: -10px; animation-duration: 9s; animation-delay: 3s; background: #c084fc; }
+.pt6 { width: 3px; height: 3px; left: 60%; bottom: -10px; animation-duration: 10s; animation-delay: 5s; }
+.pt7 { width: 4px; height: 4px; left: 10%; bottom: -10px; animation-duration: 12s; animation-delay: 2.5s; }
+.pt8 { width: 3px; height: 3px; left: 50%; bottom: -10px; animation-duration: 14s; animation-delay: 6s; }
+
+@keyframes aiParticleFloat {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    15% { opacity: 0.9; }
+    50% { transform: translateY(-300px) translateX(15px); opacity: 0.75; }
+    85% { opacity: 0.9; }
+    100% { transform: translateY(-700px) translateX(-15px); opacity: 0; }
+}
+
+/* Layer 3: Holographic Story Imagination Floating Elements */
+.ai-studio-holograms {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+}
+
+.ai-holo-cloud {
+    position: absolute;
+    top: 65px;
+    right: 15px;
+    width: 145px;
+    height: 90px;
+    border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
+    background: radial-gradient(ellipse at 50% 50%, rgba(56, 189, 248, 0.18) 0%, rgba(99, 102, 241, 0.08) 60%, transparent 80%);
+    border: 1.5px dashed rgba(56, 189, 248, 0.45);
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.25), inset 0 0 20px rgba(56, 189, 248, 0.15);
+    animation: aiHoloFloat 7s ease-in-out infinite alternate;
+    pointer-events: none;
+    transition: all 0.6s ease;
+}
+
+.holo-cloud-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.3) 0%, transparent 70%);
+    animation: aiHoloPulse 3s ease-in-out infinite alternate;
+}
+
+.holo-castle-silhouette {
+    position: absolute;
+    bottom: 8px;
+    left: 18px;
+    right: 18px;
+    height: 42px;
+    background: linear-gradient(180deg, transparent 0%, rgba(56, 189, 248, 0.25) 100%);
+    clip-path: polygon(
+        10% 100%, 10% 60%, 18% 60%, 18% 35%, 25% 10%, 32% 35%, 32% 60%,
+        40% 60%, 48% 25%, 55% 5%, 62% 25%, 70% 60%,
+        78% 60%, 82% 40%, 88% 20%, 94% 40%, 94% 100%
+    );
+    opacity: 0.75;
+}
+
+.ai-holo-card {
+    position: absolute;
+    top: 230px;
+    left: 12px;
+    width: 125px;
+    height: 68px;
+    border-radius: 8px;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    background: rgba(14, 165, 233, 0.08);
+    box-shadow: 0 0 20px rgba(14, 165, 233, 0.15);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    animation: aiHoloFloat 9s ease-in-out infinite alternate-reverse;
+    pointer-events: none;
+}
+
+.holo-card-chip {
+    width: 24px;
+    height: 4px;
+    border-radius: 2px;
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+}
+
+.holo-card-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.h-line {
+    height: 2px;
+    border-radius: 1px;
+    background: rgba(56, 189, 248, 0.4);
+}
+
+.h-line.l1 { width: 75%; }
+.h-line.l2 { width: 90%; }
+.h-line.l3 { width: 50%; }
+
+@keyframes aiHoloFloat {
+    0% { transform: translateY(0) rotate(0deg); }
+    100% { transform: translateY(-10px) rotate(1deg); }
+}
+
+@keyframes aiHoloPulse {
+    0% { opacity: 0.4; }
+    100% { opacity: 0.85; }
+}
+
+.ai-holo-panel {
+    position: absolute;
+    bottom: 95px;
+    right: 14px;
+    width: 145px;
+    height: 70px;
+    border-radius: 8px;
+    border: 1px dashed rgba(56, 189, 248, 0.45);
+    background: radial-gradient(ellipse at center, rgba(14, 165, 233, 0.12) 0%, transparent 80%);
+    box-shadow: 0 0 20px rgba(14, 165, 233, 0.22);
+    padding: 8px;
+    overflow: hidden;
+    animation: aiHoloFloat 8s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+.holo-panel-header {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: #38bdf8;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.holo-panel-scanline {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(56, 189, 248, 0.18) 50%, transparent 100%);
+    animation: aiScanline 4s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes aiScanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+}
+
+/* Layer 4: Ultra-Light Frosted Glass Scrim (Keeps Artwork 100% Visible & Text 100% Crisp) */
+.ai-studio-glass-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    background: linear-gradient(
+        180deg,
+        rgba(7, 10, 19, 0.08) 0%,
+        rgba(7, 10, 19, 0.18) 40%,
+        rgba(5, 8, 15, 0.42) 100%
+    );
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px);
+}
+
+/* ============================================================
+   FOREGROUND CHATBOT COMPONENTS (Crisp, High-Contrast UI)
+   ============================================================ */
+
+/* AI Panel Header (Khung chatbot - Nền đen mờ) */
+.ai-panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    position: relative;
+    z-index: 10;
+}
+
+.ai-header-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ai-panel-header h3 {
+    font-size: 1.15em;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+    margin: 0;
+}
+
+.ai-studio-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.status-pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #F59E0B;
+    box-shadow: 0 0 8px #F59E0B;
+    animation: statusDotPulse 2s ease-in-out infinite;
+}
+
+.status-text {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
 }
+
+@keyframes statusDotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* AI Panel Body */
+.ai-panel-body {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+    position: relative;
+    z-index: 10;
+    background: transparent;
+}
+
+/* Welcome Card (Khung hiện chữ - Màu trắng đục) */
+.ai-welcome {
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    color: #ffffff;
+    padding: 12px 15px;
+    border-radius: 10px;
+    font-size: 0.88em;
+    line-height: 1.48;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    margin-bottom: 10px;
+}
+
+.ai-welcome p {
+    margin-bottom: 6px;
+}
+
+.ai-welcome p:last-child {
+    margin-bottom: 0;
+}
+
+.ai-welcome b {
+    color: #F59E0B;
+}
+
+/* AI Quote & Custom Edit Cards (Khung hiện chữ - Màu trắng đục) */
+.ai-card {
+    background: rgba(255, 255, 255, 0.13);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: #ffffff;
+}
+
+.ai-label {
+    font-size: 0.8em;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 .ai-quote {
     font-style: italic;
-    color: #4B5563;
-    border-left: 3px solid #4F46E5;
+    color: #ffffff;
+    border-left: 3px solid #F59E0B;
     padding-left: 10px;
-    margin-bottom: 15px;
-    font-size: 0.95em;
+    margin-bottom: 12px;
+    font-size: 0.9em;
+    background: rgba(255, 255, 255, 0.12);
+    padding: 8px 10px;
+    border-radius: 0 6px 6px 0;
 }
+
 #aiCustomInstruction {
-    height: 80px;
+    height: 70px;
     margin-bottom: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.65);
     border-radius: 6px;
-    padding: 8px;
+    padding: 10px;
     width: 100%;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.9em;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
+
+#aiCustomInstruction:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
 .ai-action-btn {
-    background: #4F46E5;
+    background: linear-gradient(135deg, #4f46e5, #0284c7);
     color: white;
     border: none;
     padding: 10px;
@@ -566,17 +1077,34 @@ textarea:focus {
     border-radius: 6px;
     cursor: pointer;
     font-weight: 600;
+    font-size: 0.9em;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
 }
+
+.ai-action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.45);
+}
+
 .ai-result-text {
     font-family: 'Merriweather', serif;
-    color: #111827;
-    margin-bottom: 15px;
+    color: #ffffff;
+    margin-bottom: 12px;
     line-height: 1.6;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    padding: 10px;
+    border-radius: 6px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
+
 .ai-result-actions {
     display: flex;
     gap: 10px;
 }
+
 .ai-btn-success {
     background: #10B981;
     color: white;
@@ -585,27 +1113,234 @@ textarea:focus {
     border-radius: 6px;
     flex: 1;
     cursor: pointer;
+    font-weight: 600;
 }
+
 .ai-btn-danger {
-    background: #F3F4F6;
-    color: #EF4444;
-    border: 1px solid #EF4444;
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid #ef4444;
     padding: 8px;
     border-radius: 6px;
     flex: 1;
     cursor: pointer;
+    font-weight: 600;
 }
+
+/* Chat History & Chat Box (Khung hiện chữ - Màu trắng đục đồng bộ) */
+.chat-box {
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 12px;
+    padding: 14px;
+    height: 380px;
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.13);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.chat-message {
+    padding: 10px 15px;
+    border-radius: 14px;
+    max-width: 88%;
+    line-height: 1.48;
+    font-size: 0.9em;
+    word-break: break-word;
+    color: #ffffff;
+}
+
+.chat-user {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.92) 0%, rgba(2, 132, 199, 0.92) 100%);
+    color: #ffffff;
+    align-self: flex-end;
+    border-bottom-right-radius: 3px;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+}
+
+.chat-ai {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-left: 3px solid #F59E0B;
+    align-self: flex-start;
+    border-bottom-left-radius: 3px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.chat-input-area {
+    display: flex;
+    gap: 8px;
+}
+
+.chat-input-area textarea {
+    flex: 1;
+    margin-bottom: 0;
+    height: 58px;
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    color: #ffffff;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 0.92em;
+    resize: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.chat-input-area textarea:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.2);
+}
+
+.chat-input-area textarea::placeholder {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.send-btn {
+    background: linear-gradient(135deg, #2563eb, #38bdf8);
+    color: white;
+    border: none;
+    padding: 0 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.send-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.55);
+}
+
+/* AI Thinking Indicator */
 .ai-loading {
-    margin-top: 20px;
+    margin-top: 14px;
     text-align: center;
-    color: #6B7280;
+    background: rgba(14, 165, 233, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    border-radius: 8px;
+    padding: 10px;
+    color: #38bdf8;
+    font-weight: 600;
+    font-size: 0.88em;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+    animation: aiThinkingGlow 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes aiThinkingGlow {
+    0% { opacity: 0.6; box-shadow: 0 0 10px rgba(56, 189, 248, 0.15); }
+    100% { opacity: 1; box-shadow: 0 0 25px rgba(56, 189, 248, 0.45); }
+}
+
+/* ============================================================
+   STATE INTERACTIONS (Idle / Typing / Thinking)
+   ============================================================ */
+
+/* Typing State (User active in input) */
+.ai-panel.state-typing {
+    box-shadow: -10px 0 40px rgba(14, 165, 233, 0.25);
+}
+
+.ai-panel.state-typing .orb-cyan {
+    opacity: 0.75;
+    transform: scale(1.2);
+}
+
+/* Typing State (User is drafting message) */
+.ai-panel.state-typing {
+    box-shadow: -10px 0 35px rgba(56, 189, 248, 0.25);
+}
+
+.ai-panel.state-typing .orb-cyan {
+    opacity: 0.8;
+    transform: scale(1.15);
+}
+
+.ai-panel.state-typing .ai-particle {
+    animation-duration: 5s;
+}
+
+/* Thinking State (AI is generating / thinking) */
+.ai-panel.state-thinking {
+    box-shadow: -12px 0 50px rgba(56, 189, 248, 0.45);
+}
+
+.ai-panel.state-thinking .ai-studio-glass-overlay {
+    background: linear-gradient(
+        180deg,
+        rgba(14, 165, 233, 0.12) 0%,
+        rgba(7, 10, 19, 0.22) 40%,
+        rgba(5, 8, 15, 0.48) 100%
+    );
+}
+
+.ai-panel.state-thinking .orb-cyan {
+    opacity: 1;
+    animation: aiThinkingOrbPulse 1.2s ease-in-out infinite alternate;
+}
+
+.ai-panel.state-thinking .orb-violet {
+    opacity: 0.85;
+    animation: aiThinkingOrbPulse 1.6s ease-in-out infinite alternate-reverse;
+}
+
+.ai-panel.state-thinking .ai-holo-cloud {
+    border-color: #38bdf8;
+    box-shadow: 0 0 35px rgba(56, 189, 248, 0.6), inset 0 0 25px rgba(56, 189, 248, 0.35);
+    transform: scale(1.08);
+}
+
+.ai-panel.state-thinking .ai-holo-card {
+    border-color: #38bdf8;
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.5);
+    transform: scale(1.06);
+}
+
+.ai-panel.state-thinking .ai-particle {
+    animation-duration: 4s;
+    background: #67e8f9;
+    box-shadow: 0 0 12px #67e8f9;
+}
+
+@keyframes aiThinkingOrbPulse {
+    0% { transform: scale(1); opacity: 0.7; }
+    100% { transform: scale(1.35); opacity: 1; }
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .ai-studio-art-layer,
+    .orb-cyan,
+    .orb-violet,
+    .ai-particle,
+    .ai-holo-cloud,
+    .ai-holo-card,
+    .status-pulse-dot {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+#aiLoading {
+    color: #38bdf8;
     font-style: italic;
     animation: pulse 1.5s infinite;
 }
 @keyframes pulse {
-    0% { opacity: 0.6; }
+    0% { opacity: 0.5; }
     50% { opacity: 1; }
-    100% { opacity: 0.6; }
+    100% { opacity: 0.5; }
 }
 
 /* History Modal */
@@ -620,29 +1355,39 @@ textarea:focus {
     background-color: rgba(0,0,0,0.5);
 }
 .modal-content {
-    background-color: #fff;
+    background: rgba(10, 14, 26, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
     margin: 5% auto;
     padding: 30px;
-    border-radius: 12px;
+    border-radius: 16px;
     width: 90%;
     max-width: 600px;
     max-height: 80vh;
     overflow-y: auto;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
 }
 .close {
-    color: #aaa;
+    color: rgba(255, 255, 255, 0.7);
     float: right;
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
+    transition: color 0.2s;
+}
+.close:hover {
+    color: #ffffff;
 }
 .history-item {
-    border-bottom: 1px solid #E5E7EB;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding: 15px 0;
     cursor: pointer;
+    color: #ffffff;
 }
-.history-item:hover { background: #F9FAFB; }
-.history-title { font-weight: bold; color: #4F46E5; margin-bottom: 5px; }
+.history-item:hover { background: rgba(255, 255, 255, 0.08); border-radius: 8px; }
+.history-title { font-weight: bold; color: #F59E0B; margin-bottom: 5px; }
 
 /* Responsive Media Queries */
 @media screen and (max-width: 1024px) {
@@ -680,26 +1425,6 @@ textarea:focus {
 .lang-btn { background: transparent; border: 1px solid #6B7280; color: #9CA3AF; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; flex: 1; }
 .lang-btn.active { background: #4F46E5; color: white; border-color: #4F46E5; }
 
-.genre-search {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #D1D5DB;
-    border-radius: 6px;
-    margin-bottom: 10px;
-    font-size: 0.9em;
-}
-.genre-search:focus { outline: none; border-color: #4F46E5; }
-
-/* Pro Max Controls */
-.pro-max-controls { display: flex; flex-direction: column; gap: 20px; background: #FFF; border: 1px solid #E5E7EB; padding: 25px; border-radius: 12px; }
-.control-group { display: flex; flex-direction: column; gap: 10px; }
-.control-group label { font-weight: 600; color: #374151; display: flex; justify-content: space-between; font-size: 0.95em; }
-
-.control-group label span:last-child { color: #4F46E5; }
-.pro-slider { -webkit-appearance: none; width: 100%; height: 6px; background: #E5E7EB; border-radius: 5px; outline: none; }
-.pro-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #4F46E5; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4); }
-.pro-slider::-webkit-slider-thumb:hover { transform: scale(1.1); }
-
 /* LANDING PAGE STYLES (Cinematic Manga Glassmorphism) */
 #landingContainer {
     background: transparent;
@@ -733,9 +1458,14 @@ textarea:focus {
     letter-spacing: -0.5px;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
-.landing-logo span {
-    color: #FF8C42;
-    text-shadow: 0 0 16px rgba(255, 140, 66, 0.6);
+.landing-logo .gold-ai,
+.landing-logo span:not(.pro-badge) {
+    color: #F59E0B;
+    background: linear-gradient(135deg, #FFE082 0%, #F59E0B 60%, #D97706 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+    font-weight: 800;
 }
 
 .landing-actions {
@@ -867,18 +1597,37 @@ textarea:focus {
 }
 
 /* COMIC GENERATION STYLES */
-.comic-canvas { padding: 20px; height: calc(100vh - 150px); overflow-y: auto; background: #f1f5f9; }
-.comic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; max-width: 1100px; margin: 0 auto; }
+.comic-canvas {
+    padding: 24px;
+    height: calc(100vh - 150px);
+    overflow-y: auto;
+    background: rgba(8, 12, 22, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+.comic-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
 
 /* Stability AI Enhancement Toolbar */
 .enhancement-toolbar {
-    max-width: 1100px;
+    max-width: 1200px;
     margin: 0 auto 20px auto;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    background: rgba(12, 18, 34, 0.65);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
     padding: 16px 20px;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    color: #ffffff;
 }
 
 .enhancement-header {
@@ -1031,8 +1780,7 @@ textarea:focus {
 }
 
 .panel-index-badge {
-    color: #38bdf8;
-    text-transform: uppercase;
+    display: none !important;
 }
 
 .panel-stage-switch {
@@ -1147,17 +1895,57 @@ textarea:focus {
     background: #e2e8f0;
 }
 
+/* Bong bóng thoại hình oval đứng Manga (Fallback & Direct Webtoon) */
 .speech-bubble {
     position: relative;
-    background: #fffde7;
-    border-top: 2px solid #0f172a;
-    padding: 12px 15px;
+    background: #ffffff;
+    color: #000000;
+    border: 2.8px solid #000000;
+    border-radius: 50% / 36%;
+    padding: 16px 14px;
+    margin: 12px auto 8px auto;
+    width: fit-content;
+    max-width: 86%;
+    min-width: 100px;
+    min-height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 0.88rem;
-    color: #111;
-    max-height: 120px;
-    overflow-y: auto;
-    line-height: 1.45;
+    font-size: 0.86rem;
+    font-weight: 700;
+    line-height: 1.36;
+    box-shadow: 2px 4px 0px rgba(0, 0, 0, 0.75);
+    word-break: break-word;
+    z-index: 10;
+}
+
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -13px;
+    left: 28px;
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 14px solid #000000;
+    transform: rotate(14deg);
+}
+
+.speech-bubble::before {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 29px;
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 11px solid #ffffff;
+    z-index: 2;
+    transform: rotate(14deg);
 }
 
 .panel-tall { grid-row: span 2; }
@@ -1312,12 +2100,12 @@ textarea:focus {
     background-repeat: no-repeat;
     opacity: 0;
     transition: opacity 2.5s ease-in-out;
-    filter: brightness(0.72) contrast(1.18) saturate(0.85);
+    filter: brightness(0.95) contrast(1.25) saturate(1.28);
     will-change: transform, opacity;
 }
 
 .cinema-slide.active {
-    opacity: 0.85;
+    opacity: 0.95;
 }
 
 /* Individual Ken Burns Pan & Zoom Animations */
@@ -1355,7 +2143,7 @@ textarea:focus {
 }
 
 /* ==========================================================================
-   WORKSPACE DYNAMIC AMBIENT BACKGROUND SYSTEM (LIGHT UI / WHITE THEME)
+   WORKSPACE DYNAMIC AMBIENT BACKGROUND SYSTEM (CLEAR & VIVID MANGA/GENRE ENGINE)
    ========================================================================== */
 .workspace-bg-stage {
     display: none;
@@ -1366,46 +2154,145 @@ textarea:focus {
     pointer-events: none;
     z-index: 0;
     overflow: hidden;
+    background-color: #060912;
 }
 
 .ws-bg-layer {
     position: absolute;
-    inset: -4%;
-    width: 108%;
-    height: 108%;
+    inset: -3%;
+    width: 106%;
+    height: 106%;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     opacity: 0;
     transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-    filter: brightness(1.05) contrast(1.05) saturate(0.85);
+    filter: brightness(1.08) contrast(1.22) saturate(1.32);
     transform: scale(1);
     will-change: opacity, transform;
 }
 
-.ws-bg-layer.active {
-    opacity: 0.13;
-    transform: scale(1.03);
+.ws-bg-layer-a {
+    background-image: url('assets/manga/page_village_blue_moon.jpg');
 }
 
-/* Halftone Screen Tone for Workspace */
-.ws-screen-tone {
+.ws-bg-layer.active {
+    opacity: 0.92;
+    animation: wsBgKenBurns 28s ease-in-out infinite alternate;
+}
+
+@keyframes wsBgKenBurns {
+    0% { transform: scale(1.02) translate3d(0, 0, 0); }
+    50% { transform: scale(1.06) translate3d(-1%, 0.8%); }
+    100% { transform: scale(1.03) translate3d(0.8%, -1%); }
+}
+
+/* Balanced Cinematic Scrim: Clearly Visible Artwork with 100% Text Legibility */
+.ws-bg-scrim {
     position: absolute;
     inset: 0;
-    background-image: radial-gradient(rgba(79, 70, 229, 0.05) 1px, transparent 1px);
-    background-size: 8px 8px;
+    background: radial-gradient(circle at 50% 35%, rgba(6, 9, 18, 0.04) 0%, rgba(6, 9, 18, 0.20) 55%, rgba(4, 6, 12, 0.50) 100%),
+                linear-gradient(180deg, rgba(6, 9, 18, 0.06) 0%, transparent 40%, rgba(4, 6, 12, 0.40) 100%);
     pointer-events: none;
     z-index: 2;
 }
 
-/* Frosted Ambient Veil (100% Light Theme / Readability Guaranteed) */
-.ws-gradient-overlay {
+/* Floating Collaged Manga Panels in Background Margins - Clearly Visible & Atmospheric */
+.ws-bg-floating-panels {
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at 50% 25%, rgba(255, 255, 255, 0.88) 0%, rgba(248, 250, 252, 0.93) 55%, rgba(241, 245, 249, 0.98) 100%),
-                linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(241, 245, 249, 0.75) 100%);
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.ws-f-panel {
+    position: absolute;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1.5px solid rgba(56, 189, 248, 0.55);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), 0 0 30px rgba(14, 165, 233, 0.45);
+    opacity: 0.82;
+    filter: contrast(1.22) saturate(1.28) brightness(1.08);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.ws-f-panel img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.ws-f-panel.fp1 {
+    top: 5%;
+    left: 2%;
+    width: 210px;
+    height: 290px;
+    animation: wsFloatA 18s ease-in-out infinite alternate;
+}
+
+.ws-f-panel.fp2 {
+    bottom: 8%;
+    left: 3%;
+    width: 230px;
+    height: 160px;
+    animation: wsFloatB 22s ease-in-out infinite alternate;
+}
+
+.ws-f-panel.fp3 {
+    top: 8%;
+    right: 2%;
+    width: 210px;
+    height: 270px;
+    animation: wsFloatB 20s ease-in-out infinite alternate;
+}
+
+.ws-f-panel.fp4 {
+    bottom: 10%;
+    right: 3%;
+    width: 190px;
+    height: 250px;
+    animation: wsFloatA 24s ease-in-out infinite alternate;
+}
+
+@keyframes wsFloatA {
+    0% { transform: translateY(0px) rotate(-3deg); }
+    100% { transform: translateY(-16px) rotate(-1deg); }
+}
+
+@keyframes wsFloatB {
+    0% { transform: translateY(0px) rotate(2.5deg); }
+    100% { transform: translateY(16px) rotate(4deg); }
+}
+
+/* Ambient Subtle Particles - Electric Blue & Soft Glow */
+.ws-bg-particles {
+    position: absolute;
+    inset: 0;
     pointer-events: none;
     z-index: 3;
+}
+
+.ws-bg-particles .wp {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.95) 0%, rgba(14, 165, 233, 0.6) 45%, transparent 75%);
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.95), 0 0 6px #ffffff;
+    animation: wsParticleFloat 14s infinite ease-in-out;
+}
+
+.ws-bg-particles .wp1 { width: 5px; height: 5px; top: 15%; left: 18%; animation-duration: 10s; }
+.ws-bg-particles .wp2 { width: 6px; height: 6px; top: 35%; left: 82%; animation-duration: 14s; }
+.ws-bg-particles .wp3 { width: 4px; height: 4px; top: 70%; left: 25%; animation-duration: 12s; }
+.ws-bg-particles .wp4 { width: 7px; height: 7px; top: 20%; left: 60%; animation-duration: 16s; }
+.ws-bg-particles .wp5 { width: 5px; height: 5px; top: 55%; left: 12%; animation-duration: 11s; }
+.ws-bg-particles .wp6 { width: 6px; height: 6px; top: 80%; left: 70%; animation-duration: 18s; }
+
+@keyframes wsParticleFloat {
+    0% { transform: translateY(0) scale(0.8); opacity: 0.25; }
+    50% { transform: translateY(-30px) scale(1.3); opacity: 0.85; }
+    100% { transform: translateY(-60px) scale(0.8); opacity: 0.25; }
 }
 
 /* Manga Screen Tone / Halftone Dots Texture */
@@ -1645,8 +2532,8 @@ textarea:focus {
 .cinema-vignette-overlay {
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at center, rgba(6, 12, 28, 0.28) 0%, rgba(4, 8, 20, 0.72) 50%, rgba(2, 4, 10, 0.96) 100%),
-                linear-gradient(180deg, rgba(3, 7, 18, 0.45) 0%, transparent 20%, transparent 80%, rgba(2, 4, 10, 0.75) 100%);
+    background: radial-gradient(ellipse at center, rgba(6, 12, 28, 0.05) 0%, rgba(4, 8, 20, 0.35) 60%, rgba(2, 4, 10, 0.75) 100%),
+                linear-gradient(180deg, rgba(3, 7, 18, 0.20) 0%, transparent 25%, transparent 75%, rgba(2, 4, 10, 0.55) 100%);
     pointer-events: none;
     z-index: 5;
 }
@@ -1656,10 +2543,10 @@ textarea:focus {
     top: 35%;
     left: 0;
     right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 0.3) 25%, rgba(147, 197, 253, 0.75) 50%, rgba(56, 189, 248, 0.3) 75%, transparent 100%);
-    filter: blur(4px);
-    opacity: 0.65;
+    height: 3px;
+    background: linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 0.45) 25%, rgba(147, 197, 253, 0.95) 50%, rgba(56, 189, 248, 0.45) 75%, transparent 100%);
+    filter: blur(3px);
+    opacity: 0.85;
     pointer-events: none;
     z-index: 5;
 }
@@ -1869,4 +2756,1073 @@ textarea:focus {
         filter: brightness(0.65) contrast(1.15);
     }
 }
+
+/* ============================================================
+   NARRAI PRO — Hidden Technical Controls
+   All technical UI is hidden; pipeline runs fully automatic.
+   ============================================================ */
+
+/* Hide the entire technical toolbar (HẬU KỲ HÌNH ẢNH AI) */
+#enhancementToolbar {
+    display: none !important;
+}
+
+/* Hide panel technical action buttons and stage switch */
+.panel-action-bar,
+.panel-stage-switch,
+.panel-provider-tag {
+    display: none !important;
+}
+
+/* ============================================================
+   NARRAI PRO — Progress UI
+   ============================================================ */
+
+.pro-progress-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 40px 20px;
+    min-height: 200px;
+}
+
+.pro-progress-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    letter-spacing: 0.5px;
+}
+
+.pro-progress-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 280px;
+}
+
+.pro-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+    color: #94a3b8;
+    transition: color 0.3s ease;
+}
+
+.pro-step.done {
+    color: #34d399;
+}
+
+.pro-step.active {
+    color: #818cf8;
+    font-weight: 600;
+}
+
+.pro-step.pending {
+    color: #475569;
+}
+
+.pro-step-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.pro-step.done .pro-step-icon {
+    background: #34d399;
+    color: #0f172a;
+}
+
+.pro-step.done .pro-step-icon::after { content: "✓"; }
+
+.pro-step.active .pro-step-icon {
+    background: #818cf8;
+    color: #fff;
+    animation: pro-pulse 1s ease-in-out infinite;
+}
+
+.pro-step.active .pro-step-icon::after { content: "●"; }
+
+.pro-step.pending .pro-step-icon {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #475569;
+}
+
+.pro-step.pending .pro-step-icon::after { content: "○"; }
+
+.pro-progress-bar-wrap {
+    width: 280px;
+    height: 4px;
+    background: #1e293b;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.pro-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #818cf8, #34d399);
+    border-radius: 4px;
+    transition: width 0.6s ease;
+    width: 0%;
+}
+
+@keyframes pro-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.9); }
+}
+
+/* ============================================================
+   NARRAI PRO — STORYBOARD DIRECTOR & READING FLOW COMPOSITOR
+   ============================================================ */
+
+/* 1. Top Storyboard Director Control Deck */
+.storyboard-director-deck {
+    background: rgba(10, 15, 28, 0.78);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1.5px solid rgba(56, 189, 248, 0.22);
+    border-radius: 14px;
+    padding: 16px 22px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.sb-info-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.sb-badge-main {
+    background: linear-gradient(135deg, #2563eb, #0284c7);
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+}
+
+.sb-title-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.sb-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sb-subtitle {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+/* Reading Flow Selector Controls */
+.sb-flow-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.55);
+    padding: 4px 6px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sb-flow-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #cbd5e1;
+    text-transform: uppercase;
+    padding-left: 8px;
+    letter-spacing: 0.5px;
+}
+
+.sb-flow-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sb-flow-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sb-flow-btn.active {
+    background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+    color: #000000;
+    box-shadow: 0 2px 8px rgba(56, 189, 248, 0.4);
+}
+
+/* 2. Storyboard Act Container (Phân Hồi Kịch Bản) */
+.storyboard-act-section {
+    background: rgba(8, 12, 22, 0.65);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+    transition: border-color 0.25s ease;
+}
+
+.storyboard-act-section:hover {
+    border-color: rgba(56, 189, 248, 0.35);
+}
+
+.storyboard-act-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.act-title-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.act-badge {
+    background: #F59E0B;
+    color: #000000;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    border-radius: 5px;
+    text-transform: uppercase;
+}
+
+.act-name {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.2px;
+}
+
+.act-location-tag {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    font-style: italic;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.reading-flow-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #38bdf8;
+    background: rgba(14, 165, 233, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 4px 12px;
+    border-radius: 20px;
+    user-select: none;
+}
+
+.flow-direction-icon {
+    font-size: 0.9rem;
+    animation: flowPulse 2s infinite ease-in-out;
+}
+
+@keyframes flowPulse {
+    0%, 100% { transform: translateX(0); opacity: 1; }
+    50% { transform: translateX(3px); opacity: 0.6; }
+}
+
+/* 3. Manga Paneling System (Lưới Phân Khung Truyện Tranh) */
+.pro-comic-page {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px 12px; /* Chuẩn manga gutter: rãnh ngang 16px, rãnh dọc 12px */
+    background: #020617;
+    padding: 14px;
+    border-radius: 10px;
+    border: 2px solid #0f172a;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+    transition: direction 0.3s ease;
+}
+
+/* Reading Direction: Manga (Right to Left / RTL) */
+.flow-manga {
+    direction: rtl;
+}
+.flow-manga .pro-panel {
+    direction: ltr; /* nội dung tranh và chữ vẫn đọc xuôi */
+}
+
+/* Reading Direction: Webtoon (Left to Right / LTR) */
+.flow-webtoon {
+    direction: ltr;
+}
+
+/* Paneling Layout Types */
+/* A. Wide Establishing Shot: Chiếm trọn 12 cột */
+.pro-panel-wide,
+.pro-layout-single .pro-panel {
+    grid-column: span 12;
+    min-height: 320px;
+}
+
+/* B. Tall Action Shot: Chiếm 5 cột và 2 hàng */
+.pro-panel-tall {
+    grid-column: span 5;
+    grid-row: span 2;
+    min-height: 480px;
+}
+
+/* C. Half Width (Diptych): Chiếm 6 cột */
+.pro-panel-half,
+.pro-layout-two-col .pro-panel {
+    grid-column: span 6;
+    min-height: 280px;
+}
+
+/* D. Third Width (Triptych): Chiếm 4 cột */
+.pro-panel-third,
+.pro-layout-three-col .pro-panel {
+    grid-column: span 4;
+    min-height: 250px;
+}
+
+/* E. Focus Dialogue Panel: Chiếm 7 cột */
+.pro-panel-focus {
+    grid-column: span 7;
+    min-height: 270px;
+}
+
+/* F. Reaction Close-Up Panel: Chiếm 5 cột */
+.pro-panel-close {
+    grid-column: span 5;
+    min-height: 270px;
+}
+
+/* G. Standard Square fallback: Chiếm 6 cột */
+.pro-panel-square {
+    grid-column: span 6;
+    min-height: 270px;
+}
+
+/* Specific Presets for 3-Panel & 4-Panel Storyboards */
+.pro-layout-wide-top .pro-panel:nth-child(1) { grid-column: span 12; min-height: 310px; }
+.pro-layout-wide-top .pro-panel:nth-child(2) { grid-column: span 6; min-height: 260px; }
+.pro-layout-wide-top .pro-panel:nth-child(3) { grid-column: span 6; min-height: 260px; }
+
+.pro-layout-wide-bottom .pro-panel:nth-child(1) { grid-column: span 6; min-height: 260px; }
+.pro-layout-wide-bottom .pro-panel:nth-child(2) { grid-column: span 6; min-height: 260px; }
+.pro-layout-wide-bottom .pro-panel:nth-child(3) { grid-column: span 12; min-height: 310px; }
+
+.pro-layout-action .pro-panel:nth-child(1) { grid-column: span 7; grid-row: span 2; min-height: 520px; }
+.pro-layout-action .pro-panel:nth-child(2) { grid-column: span 5; min-height: 250px; }
+.pro-layout-action .pro-panel:nth-child(3) { grid-column: span 5; min-height: 250px; }
+
+/* ============================================================
+   NARRAI PRO — Panel Card
+   ============================================================ */
+
+.pro-panel {
+    position: relative;
+    background: #111;
+    border-radius: 4px;
+    overflow: hidden;
+    min-height: 180px;
+}
+
+.pro-panel img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.pro-panel-skeleton {
+    width: 100%;
+    height: 220px;
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+    background-size: 200% 100%;
+    animation: pro-skeleton-shimmer 1.5s infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes pro-skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.pro-panel-label {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(0,0,0,0.7);
+    color: #94a3b8;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    text-transform: uppercase;
+}
+
+/* ============================================================
+   NARRAI PRO — Character-Specific Speech Bubble Compositor
+   ============================================================ */
+
+.pro-panel-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.pro-panel-img-box {
+    position: relative;
+    width: 100%;
+    min-height: 240px;
+    background: #0f172a;
+    overflow: hidden;
+}
+
+.pro-panel-img-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.pro-panel-img-box:hover img {
+    transform: scale(1.02);
+}
+
+/* Narration overlay at top of panel */
+.pro-narration-banner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(4px);
+    color: #e2e8f0;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-style: italic;
+    font-family: 'Segoe UI', sans-serif;
+    border-bottom: 1.5px solid #6366f1;
+    line-height: 1.4;
+    z-index: 2;
+}
+
+/* Dialogue box attached directly at bottom of panel */
+.pro-dialogue-card {
+    background: #111827;
+    padding: 10px 12px;
+    border-top: 1px solid #1f2937;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Speaker Badge */
+.pro-speaker-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pro-speaker-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.speaker-hero {
+    background: linear-gradient(135deg, #2563eb, #38bdf8);
+    color: #ffffff;
+    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.4);
+}
+
+.speaker-companion {
+    background: linear-gradient(135deg, #ec4899, #f472b6);
+    color: #ffffff;
+    box-shadow: 0 1px 4px rgba(236, 72, 153, 0.4);
+}
+
+.speaker-villain {
+    background: linear-gradient(135deg, #dc2626, #f87171);
+    color: #ffffff;
+    box-shadow: 0 1px 4px rgba(220, 38, 38, 0.4);
+}
+
+.speaker-narrator {
+    background: linear-gradient(135deg, #475569, #64748b);
+    color: #ffffff;
+}
+
+.pro-emotion-tag {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* Classic Rounded Speech Bubble */
+.pro-bubble-speech {
+    position: relative;
+    background: #ffffff;
+    color: #0f172a;
+    border: 2px solid #0f172a;
+    border-radius: 14px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.45;
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.4);
+    margin-top: 2px;
+    word-break: break-word;
+}
+
+.pro-bubble-speech::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 18px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 8px solid #0f172a;
+}
+
+.pro-bubble-speech::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 19px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 6px solid #ffffff;
+}
+
+/* Dynamic Explosive Shout Bubble (Fighting / Action) */
+.pro-bubble-shout {
+    position: relative;
+    background: #fef08a;
+    color: #000000;
+    border: 2.5px solid #000000;
+    border-radius: 4px;
+    padding: 9px 14px;
+    font-size: 0.88rem;
+    font-weight: 800;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.35;
+    letter-spacing: 0.3px;
+    box-shadow: 3px 3px 0px #dc2626;
+    margin-top: 2px;
+    word-break: break-word;
+}
+
+/* Thought Bubble (Inner monologue) */
+.pro-bubble-thought {
+    position: relative;
+    background: #f1f5f9;
+    color: #1e293b;
+    border: 2px dashed #64748b;
+    border-radius: 20px;
+    padding: 8px 14px;
+    font-size: 0.82rem;
+    font-style: italic;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.4;
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+    margin-top: 2px;
+    word-break: break-word;
+}
+
+/* ============================================================
+   TRUE MANGA COMIC COMPOSITOR — IN-PANEL SPEECH BUBBLE SYSTEM
+   ============================================================ */
+
+/* The entire comic panel frame */
+.manga-panel-container {
+    position: relative;
+    width: 100%;
+    min-height: 280px;
+    background: #020617;
+    border: 3px solid #0f172a;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.manga-panel-container:hover {
+    border-color: #38bdf8;
+    box-shadow: 0 12px 30px rgba(14, 165, 233, 0.35);
+}
+
+.manga-panel-container img {
+    width: 100%;
+    height: 100%;
+    min-height: 280px;
+    object-fit: cover;
+    display: block;
+}
+
+/* Panel Top Header Bar (Badge + Quick Actions) */
+.manga-panel-topbar {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    z-index: 20;
+    pointer-events: none;
+}
+
+.manga-panel-badge {
+    display: none !important;
+}
+
+.manga-panel-tools {
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: auto;
+}
+
+.manga-panel-container:hover .manga-panel-tools {
+    opacity: 1;
+}
+
+.manga-tool-btn {
+    background: rgba(15, 23, 42, 0.9);
+    color: #e2e8f0;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: all 0.2s ease;
+}
+
+.manga-tool-btn:hover {
+    background: #38bdf8;
+    color: #000;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+}
+
+/* Narration Banner (Inside Panel) */
+.manga-narration-banner {
+    position: absolute;
+    top: 36px;
+    left: 10px;
+    right: 10px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1.5px solid #6366f1;
+    border-radius: 4px;
+    color: #e0e7ff;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    font-style: italic;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.4;
+    z-index: 12;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+    outline: none;
+    cursor: text;
+}
+
+/* Manga Speech Bubbles Overlay Layer */
+.manga-bubble-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 15;
+}
+
+/* ============================================================
+   TRUE MANGA COMIC COMPOSITOR — VERTICAL OVAL SPEECH BUBBLE SYSTEM (BONG BÓNG THOẠI HÌNH OVAL ĐỨNG)
+   ============================================================ */
+
+/* Individual Manga Bubble Component */
+.manga-bubble {
+    position: absolute;
+    pointer-events: auto;
+    max-width: 78%;
+    min-width: 95px;
+    display: flex;
+    flex-direction: column;
+    z-index: 16;
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), filter 0.2s ease;
+}
+
+.manga-bubble:hover {
+    filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.8));
+    z-index: 30;
+    transform: scale(1.03);
+}
+
+/* Positioning */
+.manga-pos-top-left { top: 38px; left: 14px; align-items: flex-start; }
+.manga-pos-top-right { top: 38px; right: 14px; align-items: flex-end; }
+.manga-pos-bottom-left { bottom: 18px; left: 14px; align-items: flex-start; }
+.manga-pos-bottom-right { bottom: 18px; right: 14px; align-items: flex-end; }
+
+/* Speaker Tag Badge — Hidden per user request */
+.manga-speaker-tag {
+    display: none !important;
+}
+
+.speaker-hero {
+    background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+    color: #ffffff;
+    border: 1px solid #38bdf8;
+}
+
+.speaker-companion {
+    background: linear-gradient(135deg, #db2777, #f472b6);
+    color: #ffffff;
+    border: 1px solid #f472b6;
+}
+
+.speaker-villain {
+    background: linear-gradient(135deg, #b91c1c, #f87171);
+    color: #ffffff;
+    border: 1px solid #f87171;
+}
+
+.speaker-narrator {
+    background: #334155;
+    color: #e2e8f0;
+    border: 1px solid #64748b;
+}
+
+/* 1. TYPE: Normal Speech Bubble — Authentic Manga Vertical Oval (Hình Oval Đứng) */
+.bubble-speech .manga-bubble-body {
+    position: relative;
+    background: #ffffff;
+    color: #000000;
+    border: 2.8px solid #000000;
+    border-radius: 50% / 36%;
+    padding: 16px 14px;
+    min-width: 92px;
+    min-height: 98px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 2px 4px 0px rgba(0, 0, 0, 0.8);
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+/* Vertical Oval Tail: Bottom-Left Pointer */
+.manga-pos-bottom-left .bubble-speech .manga-bubble-body::after {
+    content: '';
+    position: absolute;
+    bottom: -14px;
+    left: 22px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 15px solid #000000;
+    transform: rotate(12deg);
+}
+.manga-pos-bottom-left .bubble-speech .manga-bubble-body::before {
+    content: '';
+    position: absolute;
+    bottom: -9px;
+    left: 23px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 12px solid #ffffff;
+    z-index: 2;
+    transform: rotate(12deg);
+}
+
+/* Vertical Oval Tail: Bottom-Right Pointer */
+.manga-pos-bottom-right .bubble-speech .manga-bubble-body::after {
+    content: '';
+    position: absolute;
+    bottom: -14px;
+    right: 22px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 15px solid #000000;
+    transform: rotate(-12deg);
+}
+.manga-pos-bottom-right .bubble-speech .manga-bubble-body::before {
+    content: '';
+    position: absolute;
+    bottom: -9px;
+    right: 23px;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 12px solid #ffffff;
+    z-index: 2;
+    transform: rotate(-12deg);
+}
+
+/* Vertical Oval Tail: Top-Left Pointer */
+.manga-pos-top-left .bubble-speech .manga-bubble-body::after {
+    content: '';
+    position: absolute;
+    top: -14px;
+    left: 22px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 15px solid #000000;
+    transform: rotate(-12deg);
+}
+.manga-pos-top-left .bubble-speech .manga-bubble-body::before {
+    content: '';
+    position: absolute;
+    top: -9px;
+    left: 23px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 12px solid #ffffff;
+    z-index: 2;
+    transform: rotate(-12deg);
+}
+
+/* Vertical Oval Tail: Top-Right Pointer */
+.manga-pos-top-right .bubble-speech .manga-bubble-body::after {
+    content: '';
+    position: absolute;
+    top: -14px;
+    right: 22px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 15px solid #000000;
+    transform: rotate(12deg);
+}
+.manga-pos-top-right .bubble-speech .manga-bubble-body::before {
+    content: '';
+    position: absolute;
+    top: -9px;
+    right: 23px;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 12px solid #ffffff;
+    z-index: 2;
+    transform: rotate(12deg);
+}
+
+/* 2. TYPE: Explosive Shout Bubble — Vertical Oval with Jagged Energy */
+.bubble-shout .manga-bubble-body {
+    position: relative;
+    background: linear-gradient(135deg, #fffbeb 0%, #fef08a 100%);
+    color: #000000;
+    border: 3px solid #000000;
+    border-radius: 46% 54% 48% 52% / 38% 42% 36% 44%;
+    padding: 16px 14px;
+    min-width: 95px;
+    min-height: 102px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 4px 4px 0px #dc2626;
+    box-sizing: border-box;
+}
+
+/* 3. TYPE: Thought Bubble — Vertical Oval Cloud */
+.bubble-thought .manga-bubble-body {
+    position: relative;
+    background: #ffffff;
+    color: #1e293b;
+    border: 2.5px dashed #334155;
+    border-radius: 50% / 38%;
+    padding: 16px 14px;
+    min-width: 92px;
+    min-height: 98px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-style: italic;
+    box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.35);
+    box-sizing: border-box;
+}
+.manga-pos-bottom-left .bubble-thought .manga-bubble-body::after {
+    content: '';
+    position: absolute;
+    bottom: -12px;
+    left: 18px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #334155;
+}
+.manga-pos-bottom-left .bubble-thought .manga-bubble-body::before {
+    content: '';
+    position: absolute;
+    bottom: -22px;
+    left: 10px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1.5px solid #334155;
+    z-index: 2;
+}
+
+/* 4. TYPE: Narration Box */
+.bubble-narration .manga-bubble-body {
+    background: rgba(15, 23, 42, 0.95);
+    color: #f1f5f9;
+    border: 2px solid #818cf8;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-style: italic;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+    text-align: center;
+}
+
+/* 5. TYPE: Whisper — Dotted Vertical Oval */
+.bubble-whisper .manga-bubble-body {
+    background: rgba(255, 255, 255, 0.95);
+    color: #334155;
+    border: 2px dotted #64748b;
+    border-radius: 50% / 38%;
+    padding: 14px 12px;
+    min-width: 88px;
+    min-height: 94px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-style: italic;
+    box-sizing: border-box;
+}
+
+/* Editable Bubble Text inside body — Centered vertical oval typography */
+.manga-bubble-text {
+    font-size: 0.86rem;
+    font-weight: 700;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.35;
+    outline: none;
+    word-break: break-word;
+    cursor: text;
+    text-align: center;
+    max-width: 100%;
+}
+
+.manga-bubble-text:focus {
+    background: rgba(56, 189, 248, 0.15);
+    border-radius: 4px;
+}
+
+/* Mini Bubble Hover Actions (Reposition, Change Type, Delete) */
+.manga-bubble-actions {
+    display: none;
+    gap: 4px;
+    margin-top: 3px;
+    background: rgba(0, 0, 0, 0.88);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    align-self: flex-start;
+}
+
+.manga-bubble:hover .manga-bubble-actions {
+    display: flex;
+}
+
+.mb-act-btn {
+    background: transparent;
+    color: #94a3b8;
+    border: none;
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 2px 5px;
+    border-radius: 3px;
+    transition: all 0.15s;
+}
+
+.mb-act-btn:hover {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.2);
+}
+
+.mb-act-btn.btn-del:hover {
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.25);
+}
+
+
 

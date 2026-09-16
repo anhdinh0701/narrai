@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NarrAI Workspace - ISTARTUP2026</title>
-    <link rel="stylesheet" href="style.css?v=20260915_no_icons">
+    <link rel="stylesheet" href="style.css?v=20260915_studio_bg">
 </head>
 <body class="workspace-mode">
 
@@ -100,18 +100,11 @@
         <div class="cinema-lens-glow"></div>
     </div>
 
-    <!-- Ambient Dynamic Background Stage for Workspace / App -->
-    <div class="workspace-bg-stage" id="workspaceBgStage" style="display: none;" aria-hidden="true">
-        <div class="ws-bg-layer layer-a active" id="wsBgLayerA"></div>
-        <div class="ws-bg-layer layer-b" id="wsBgLayerB"></div>
-        <div class="ws-screen-tone"></div>
-        <div class="ws-gradient-overlay"></div>
-    </div>
 
     <!-- LANDING PAGE -->
     <div id="landingContainer">
         <nav class="landing-nav">
-            <div class="landing-logo">NarrAI <span>Pro</span></div>
+            <div class="landing-logo">Narr<span class="gold-ai">AI</span> <span class="pro-badge">Pro</span></div>
             <div class="landing-actions">
                 <button onclick="setLang('vi')" class="lang-btn-landing">VIE</button>
                 <button onclick="setLang('en')" class="lang-btn-landing">ENG</button>
@@ -143,10 +136,31 @@
 
     <!-- WORKSPACE APP (Hidden until logged in) -->
     <div class="workspace-layout" id="appContainer" style="display: none;">
+        <!-- Multi-layer Dynamic Manga & Genre Background Stage (From Step 1 Onwards) -->
+        <div class="workspace-bg-stage" id="workspaceBgStage" aria-hidden="true">
+            <div class="ws-bg-layer ws-bg-layer-a active" id="wsBgLayerA"></div>
+            <div class="ws-bg-layer ws-bg-layer-b" id="wsBgLayerB"></div>
+            <div class="ws-bg-scrim"></div>
+            <div class="ws-bg-floating-panels" id="wsFloatingPanels">
+                <div class="ws-f-panel fp1"><img src="assets/manga/page_village_blue_moon.jpg" alt="" loading="lazy"></div>
+                <div class="ws-f-panel fp2"><img src="assets/manga/page_warrior_canyon_fire.jpg" alt="" loading="lazy"></div>
+                <div class="ws-f-panel fp3"><img src="assets/manga/panel_combat_punch.jpg" alt="" loading="lazy"></div>
+                <div class="ws-f-panel fp4"><img src="assets/manga/page_ancient_town_rain.jpg" alt="" loading="lazy"></div>
+            </div>
+            <div class="ws-bg-particles">
+                <span class="wp wp1"></span>
+                <span class="wp wp2"></span>
+                <span class="wp wp3"></span>
+                <span class="wp wp4"></span>
+                <span class="wp wp5"></span>
+                <span class="wp wp6"></span>
+            </div>
+        </div>
+
         <!-- Panel Trái: Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h1>NarrAI</h1>
+                <h1>Narr<span class="gold-ai">AI</span></h1>
             </div>
             
             <!-- User Info & Auth -->
@@ -292,16 +306,108 @@
                 </div>
 
                 <div id="comicCanvas" class="comic-canvas">
-                    <div class="ai-loading" id="comicLoading" style="display:none;">Đang kết nối ComfyUI kết xuất các khung tranh...</div>
+                    <div class="ai-loading" id="comicLoading" style="display:none;">
+                        <div class="pro-progress-container" id="proProgressUI">
+                            <div class="pro-progress-title">NarrAI đang tao truyen tranh...</div>
+                            <div class="pro-progress-steps" id="proProgressSteps">
+                                <div class="pro-step pending" id="pstep-analyze">
+                                    <span class="pro-step-icon"></span>
+                                    <span>Phan tich y tuong</span>
+                                </div>
+                                <div class="pro-step pending" id="pstep-story">
+                                    <span class="pro-step-icon"></span>
+                                    <span>Xay dung co truyen</span>
+                                </div>
+                                <div class="pro-step pending" id="pstep-chars">
+                                    <span class="pro-step-icon"></span>
+                                    <span>Thiet ke nhan vat</span>
+                                </div>
+                                <div class="pro-step pending" id="pstep-panels">
+                                    <span class="pro-step-icon"></span>
+                                    <span>Phan canh truyen tranh</span>
+                                </div>
+                                <div class="pro-step pending" id="pstep-art">
+                                    <span class="pro-step-icon"></span>
+                                    <span>Tao tranh</span>
+                                </div>
+                                <div class="pro-step pending" id="pstep-finish">
+                                    <span class="pro-step-icon"></span>
+                                    <span>Hoan thien comic</span>
+                                </div>
+                            </div>
+                            <div class="pro-progress-bar-wrap">
+                                <div class="pro-progress-bar-fill" id="proProgressBar"></div>
+                            </div>
+                        </div>
+                    </div>
                     <div id="comicGrid" class="comic-grid"></div>
+
                 </div>
             </div>
         </main>
 
         <!-- Panel Phải: AI Co-pilot -> Trợ lý của bạn -->
-        <aside class="ai-panel">
+        <aside class="ai-panel" id="aiCopilotPanel">
+            <!-- Dynamic Cinematic AI Storytelling Studio Background Stage -->
+            <div class="ai-studio-stage" id="aiStudioStage" aria-hidden="true">
+                <!-- Layer 0: Deep Creative AI Studio Artwork (Slow breathing pan) -->
+                <div class="ai-studio-art-layer" id="aiStudioArtLayer"></div>
+
+                <!-- Layer 1: Atmospheric Cyan & Violet Glow Lighting, Warm Lamp Bokeh -->
+                <div class="ai-studio-atmosphere">
+                    <div class="ai-glow-orb orb-cyan" id="aiOrbCyan"></div>
+                    <div class="ai-glow-orb orb-violet" id="aiOrbViolet"></div>
+                    <div class="ai-glow-orb orb-amber" id="aiOrbAmber"></div>
+                    <div class="ai-studio-vignette"></div>
+                </div>
+
+                <!-- Layer 2: Floating Ethereal Story Particles / Digital Dust -->
+                <div class="ai-studio-particles" id="aiStudioParticles">
+                    <span class="ai-particle pt1"></span>
+                    <span class="ai-particle pt2"></span>
+                    <span class="ai-particle pt3"></span>
+                    <span class="ai-particle pt4"></span>
+                    <span class="ai-particle pt5"></span>
+                    <span class="ai-particle pt6"></span>
+                    <span class="ai-particle pt7"></span>
+                    <span class="ai-particle pt8"></span>
+                </div>
+
+                <!-- Layer 3: Holographic Story Imagination & AI Thinking Wireframes -->
+                <div class="ai-studio-holograms" id="aiStudioHolograms">
+                    <!-- Holographic Floating Imagination Cloud (Castle & Floating Islands silhouette) -->
+                    <div class="ai-holo-cloud" id="aiHoloCloud">
+                        <div class="holo-cloud-glow"></div>
+                        <div class="holo-castle-silhouette"></div>
+                    </div>
+                    <!-- Holographic UI Card Fragment matching Reference Art -->
+                    <div class="ai-holo-card" id="aiHoloCard">
+                        <div class="holo-card-chip"></div>
+                        <div class="holo-card-lines">
+                            <span class="h-line l1"></span>
+                            <span class="h-line l2"></span>
+                            <span class="h-line l3"></span>
+                        </div>
+                    </div>
+                    <!-- Holographic Story Fragments: Fantasy / Comic Panel wireframe -->
+                    <div class="ai-holo-panel" id="aiHoloPanel">
+                        <div class="holo-panel-header">◈ STORY_GEN // ACT I</div>
+                        <div class="holo-panel-scanline"></div>
+                    </div>
+                </div>
+
+                <!-- Layer 4: Deep Frosted Glassmorphic Dark Overlay for Maximum Readability -->
+                <div class="ai-studio-glass-overlay"></div>
+            </div>
+
             <div class="ai-panel-header">
-                <h3 data-i18n="ai_copilot">Trợ lý của bạn</h3>
+                <div class="ai-header-title-row">
+                    <h3 data-i18n="ai_copilot">Trợ lý của bạn</h3>
+                    <div class="ai-studio-status-badge">
+                        <span class="status-pulse-dot"></span>
+                        <span class="status-text">AI Studio</span>
+                    </div>
+                </div>
             </div>
             <div class="ai-panel-body" id="aiCopilotBody">
                 <div class="ai-welcome" id="aiWelcomeMsg">
@@ -406,6 +512,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=20260915_no_icons"></script>
+    <script src="script.js?v=20260915_studio_bg"></script>
 </body>
 </html>
