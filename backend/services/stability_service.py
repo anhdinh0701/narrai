@@ -30,6 +30,23 @@ class StabilityImageService:
     def is_available(self) -> bool:
         return self.enabled and bool(self.api_key)
 
+    def generate_text_to_image(
+        self,
+        prompt: str,
+        aspect_ratio: str = "1:1",
+        seed: Optional[int] = None
+    ):
+        """
+        Generate full-color anime manga illustration from text prompt via Stability AI REST API.
+        """
+        try:
+            from services.image_provider import ImageProviderFactory
+        except (ImportError, ModuleNotFoundError):
+            from backend.services.image_provider import ImageProviderFactory
+        provider = ImageProviderFactory.get_primary_provider()
+        return provider.generate_image(prompt=prompt, aspect_ratio=aspect_ratio, seed=seed)
+
+
     def _sanitize_image_bytes(self, image_bytes: bytes, max_pixels: int = 4194304) -> bytes:
         """
         Validates, converts to RGB PNG, and resizes if exceeding max_pixels.

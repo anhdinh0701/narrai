@@ -115,14 +115,38 @@ def get_curated_panel(prompt: str, seed: int = 42) -> str:
     idx = abs(int(seed)) % len(FALLBACK_POOL)
     return FALLBACK_POOL[idx]
 
-def generate_comic_panel_image(prompt: str, seed: int = 42, width: int = 640, height: int = 896, steps: int = 14) -> str:
+def generate_comic_panel_image(prompt: str, seed: int = 42, layout_type: str = "square", width: int = 640, height: int = 896, steps: int = 14) -> str:
     """
-    Generate comic panel image using local ComfyUI instance with SDXL/animagine checkpoint.
-    If ComfyUI is offline or fails, falls back gracefully to high-res curated manga panels.
+    Generate comic panel image.
+    1. If local ComfyUI is running, executes via local GPU workflow.
+    2. Otherwise, automatically routes to Primary Cloud Provider: Stability AI.
+    3. Fallback to curated asset only if all generative providers fail.
     """
     ckpt = get_first_checkpoint()
     if not ckpt:
-        print("[NarrAI ImageGen] ComfyUI checkpoint not available, using curated fallback")
+        # Route to Primary Cloud Provider: Stability AI
+        try:
+            try:
+                from services.image_provider import ImageProviderFactory
+            except (ImportError, ModuleNotFoundError):
+                from backend.services.image_provider import ImageProviderFactory
+            stability = ImageProviderFactory.get_primary_provider()
+            if stability.is_available():
+                resp = stability.generate_image(prompt, aspect_ratio=layout_type, seed=seed)
+                if resp.get("success") and resp.get("image_bytes"):
+                    import uuid
+                    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    out_dir = os.path.join(backend_dir, "outputs", "final")
+                    os.makedirs(out_dir, exist_ok=True)
+                    fn = f"panel_{uuid.uuid4().hex[:12]}.png"
+                    fp = os.path.join(out_dir, fn)
+                    with open(fp, "wb") as f:
+                        f.write(resp["image_bytes"])
+                    return f"/api/images/final/{fn}"
+        except Exception as e:
+            print(f"[NarrAI ImageGen] Stability AI generation error: {e}")
+
+        print("[NarrAI ImageGen] Using curated fallback panel")
         return get_curated_panel(prompt, seed=seed)
 
     clean_prompt = (prompt or "comic manga scene").strip()

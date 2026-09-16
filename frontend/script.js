@@ -4,6 +4,25 @@ const API_URL = (window.location.port === "3000" || window.location.protocol ===
         ? "https://narrai-2.onrender.com/api"
         : "/api");
 
+function formatImageUrl(url) {
+    if (!url) return '';
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const base = API_URL.replace(/\/api\/?$/, '');
+    const cleanPath = url.startsWith('/') ? url : '/' + url;
+    return `${base}${cleanPath}`;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 let globalData = {
     initialPrompt: "",
     chatHistory: [],
@@ -1686,6 +1705,96 @@ async function onDemandComfyUIGenerate(panelDiv) {
     }
 }
 
+async function retryPanel(panelId) {
+    if (!panelId) return;
+    const panelWrap = document.getElementById(`pro-panel-${panelId}`);
+    if (panelWrap) {
+        const skeleton = panelWrap.querySelector('.pro-panel-skeleton');
+        const img = panelWrap.querySelector('.pro-panel-img-box img');
+        if (skeleton) {
+            skeleton.style.display = 'flex';
+            skeleton.innerHTML = '<span style="color:#64748b;font-size:0.75rem;">Đang kết xuất lại tranh AI...</span>';
+        }
+        if (img) img.style.display = 'none';
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/comic/panels/${panelId}/retry`, {
+            method: 'POST',
+            headers: authHeaders()
+        });
+        const data = await res.json();
+        if (data.status === 'success' && data.panel) {
+            if (panelWrap) {
+                const img = panelWrap.querySelector('.pro-panel-img-box img');
+                const skeleton = panelWrap.querySelector('.pro-panel-skeleton');
+                if (img) {
+                    img.src = formatImageUrl(data.panel.final_image_url || data.panel.image_url) + '?t=' + Date.now();
+                    img.onload = () => {
+                        if (skeleton) skeleton.style.display = 'none';
+                        img.style.display = 'block';
+                    };
+                }
+            }
+        } else {
+            alert(data.message || 'Không thể tạo lại ảnh lúc này.');
+            if (panelWrap) {
+                const skeleton = panelWrap.querySelector('.pro-panel-skeleton');
+                if (skeleton) {
+                    skeleton.innerHTML = `<span style="color:#ef4444;font-size:0.75rem;padding:10px;">${escapeHtml(data.message || 'Lỗi tạo lại')}</span>`;
+                }
+            }
+        }
+    } catch (e) {
+        alert('Lỗi kết nối khi thử tạo lại: ' + e.message);
+    }
+}
+
+async function enhancePanelWithComfyUI(panelId) {
+    if (!panelId) return;
+    const panelWrap = document.getElementById(`pro-panel-${panelId}`);
+    if (panelWrap) {
+        const skeleton = panelWrap.querySelector('.pro-panel-skeleton');
+        if (skeleton) {
+            skeleton.style.display = 'flex';
+            skeleton.innerHTML = '<span style="color:#64748b;font-size:0.75rem;">Đang xử lý qua ComfyUI cục bộ...</span>';
+        }
+    }
+    try {
+        const res = await fetch(`${API_URL}/comic/panels/${panelId}/enhance-comfyui`, {
+            method: 'POST',
+            headers: authHeaders()
+        });
+        const data = await res.json();
+        if (data.status === 'success' && data.panel) {
+            if (panelWrap) {
+                const img = panelWrap.querySelector('.pro-panel-img-box img');
+                const skeleton = panelWrap.querySelector('.pro-panel-skeleton');
+                if (img) {
+                    img.src = formatImageUrl(data.panel.final_image_url || data.panel.image_url) + '?t=' + Date.now();
+                    img.onload = () => {
+                        if (skeleton) skeleton.style.display = 'none';
+                        img.style.display = 'block';
+                    };
+                }
+            }
+        } else {
+            alert(data.message || 'ComfyUI không phản hồi.');
+        }
+    } catch(e) {
+        alert('Lỗi kết nối ComfyUI: ' + e.message);
+    }
+}
+
+function regenPanelImage(panelDomId) {
+    const el = document.getElementById(panelDomId);
+    if (!el) return;
+    const panelId = el.dataset.panelId || el.id.replace('pro-panel-', '');
+    if (panelId) {
+        retryPanel(parseInt(panelId, 10));
+    }
+}
+
 function renderComicPanel(p, index, grid) {
     const panelDiv = document.createElement('div');
     panelDiv.className = `comic-panel panel-${p.layout_type || 'square'}`;
@@ -1916,6 +2025,7 @@ function renderProComicPanel(p, index, container) {
     panelWrap.className = `pro-panel ${layoutClass}`;
     const panelId = `pro-panel-${p.id || index}`;
     panelWrap.id = panelId;
+    panelWrap.dataset.panelId = p.id || '';
 
     const inner = document.createElement('div');
     inner.className = 'pro-panel-inner';
@@ -1942,10 +2052,18 @@ function renderProComicPanel(p, index, container) {
     const regenBtn = document.createElement('button');
     regenBtn.type = 'button';
     regenBtn.className = 'manga-tool-btn';
-    regenBtn.innerHTML = '🎨 Vẽ lại';
-    regenBtn.title = 'Làm mới khung hình';
-    regenBtn.onclick = (e) => { e.stopPropagation(); regenPanelImage(panelId); };
+    regenBtn.innerHTML = '🎨 Thử lại';
+    regenBtn.title = 'Tạo lại khung tranh qua Stability AI';
+    regenBtn.onclick = (e) => { e.stopPropagation(); retryPanel(p.id); };
     tools.appendChild(regenBtn);
+
+    const comfyBtn = document.createElement('button');
+    comfyBtn.type = 'button';
+    comfyBtn.className = 'manga-tool-btn';
+    comfyBtn.innerHTML = '⚡ ComfyUI';
+    comfyBtn.title = 'Tô màu / Tinh chỉnh bằng ComfyUI cục bộ';
+    comfyBtn.onclick = (e) => { e.stopPropagation(); enhancePanelWithComfyUI(p.id); };
+    tools.appendChild(comfyBtn);
 
     topbar.appendChild(tools);
     imgBox.appendChild(topbar);
@@ -1985,10 +2103,33 @@ function renderProComicPanel(p, index, container) {
             img.src = src + (src.includes('?') ? '&' : '?') + 'r=' + Date.now();
             return;
         }
-        skeleton.innerHTML = '<span style="color:#ef4444;font-size:0.75rem;padding:10px;">Không tải được ảnh</span>';
+        skeleton.style.display = 'flex';
+        skeleton.innerHTML = `
+            <div style="padding:15px; text-align:center; color:#94a3b8; font-size:0.75rem; width:100%;">
+                <div style="font-weight:600; color:#cbd5e1; margin-bottom:4px;">Không tải được ảnh</div>
+                <button type="button" class="manga-tool-btn" style="background:#4f46e5; color:#fff; margin-top:6px;" onclick="retryPanel(${p.id})">🎨 Thử tạo lại</button>
+            </div>
+        `;
     };
 
-    img.src = p.final_image_url || p.image_url || '';
+    const targetImgSrc = formatImageUrl(p.final_image_url || p.image_url || '');
+    if (targetImgSrc) {
+        img.src = targetImgSrc;
+    } else {
+        skeleton.style.display = 'flex';
+        skeleton.innerHTML = `
+            <div style="padding:15px; text-align:center; color:#94a3b8; font-size:0.75rem; width:100%;">
+                <div style="font-weight:600; color:#f87171; margin-bottom:4px;">Chưa tạo được ảnh tranh</div>
+                <div style="font-size:0.7rem; color:#cbd5e1; margin-bottom:10px; max-width:90%; margin-left:auto; margin-right:auto; line-height:1.3;">
+                    ${escapeHtml(p.action_description || p.action || p.image_prompt || 'Khung kịch bản')}
+                </div>
+                <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
+                    <button type="button" class="manga-tool-btn" style="background:#4f46e5; color:#fff;" onclick="retryPanel(${p.id})">🎨 Thử lại</button>
+                    <button type="button" class="manga-tool-btn" style="background:#0284c7; color:#fff;" onclick="enhancePanelWithComfyUI(${p.id})">⚡ ComfyUI</button>
+                </div>
+            </div>
+        `;
+    }
     imgBox.appendChild(img);
 
     // 2. Manga Speech Bubbles Overlay
@@ -2316,7 +2457,8 @@ function renderStoryboardAct(act, actIndex, grid) {
 }
 
 // ============================================================
-// NARRAI PRO — Main Comic Generation (uses generate-pro)
+// ============================================================
+// NARRAI PRO — Main Comic Generation (Job Queue + Polling)
 // ============================================================
 
 async function adaptToComic() {
@@ -2332,14 +2474,14 @@ async function adaptToComic() {
     document.getElementById('comicView').style.display = 'block';
     if (typeof BackgroundManager !== 'undefined') BackgroundManager.setContext('comic');
 
-    // Load stability config silently (no UI shown to user)
+    // Load stability config silently
     if (!stabilityConfigLoaded) {
         loadStabilityConfig();
     }
 
     const grid = document.getElementById('comicGrid');
 
-    // Cache: if same text + already rendered, keep
+    // Cache check: if same text and already rendered, keep
     if (hasGeneratedComic && text === lastComicText && grid.children.length > 0) {
         return;
     }
@@ -2349,23 +2491,19 @@ async function adaptToComic() {
 
     grid.innerHTML = '';
     const loader = document.getElementById('comicLoading');
-    loader.style.display = 'block';
+    if (loader) loader.style.display = 'block';
     proResetProgress();
 
-    // Friendly Animated Step Progress
-    proAdvanceProgress(0); // Phân tích ý tưởng
-    await new Promise(r => setTimeout(r, 500));
-    proAdvanceProgress(1); // Xây dựng cốt truyện
-    await new Promise(r => setTimeout(r, 500));
-    proAdvanceProgress(2); // Thiết kế nhân vật
-    await new Promise(r => setTimeout(r, 500));
-    proAdvanceProgress(3); // Phân cảnh truyện tranh
-    await new Promise(r => setTimeout(r, 500));
+    // Animated step progress for user feedback
+    proAdvanceProgress(0); // Phân tích kịch bản
+    await new Promise(r => setTimeout(r, 400));
+    proAdvanceProgress(1); // Xây dựng cốt truyện & bối cảnh
+    await new Promise(r => setTimeout(r, 400));
+    proAdvanceProgress(2); // Thiết kế nhân vật (Character Bible)
 
     try {
-        proAdvanceProgress(4); // Tạo tranh AI
-
-        const res = await fetch(`${API_URL}/comic/generate-pro`, {
+        // Step 1: Create background job
+        const res = await fetch(`${API_URL}/comic/jobs/create`, {
             method: 'POST',
             headers: authHeaders(),
             body: JSON.stringify({
@@ -2377,63 +2515,168 @@ async function adaptToComic() {
         });
 
         if (!res.ok) {
-            let errMsg = `API lỗi (${res.status})`;
-            try { const ed = await res.json(); errMsg = ed.message || ed.detail || errMsg; } catch(_) {}
-            throw new Error(errMsg);
+            // Fallback to synchronous generate-pro if jobs/create returned error
+            console.warn('[NarrAI Pro] jobs/create unavailable, falling back to generate-pro...');
+            return await adaptToComicDirect(text);
         }
 
         const data = await res.json();
-        proAdvanceProgress(5); // Hoàn thiện comic
-        await new Promise(r => setTimeout(r, 400));
+        if (data.status !== 'success' || !data.job_id) {
+            throw new Error(data.message || 'Không thể tạo tiến trình');
+        }
 
-        loader.style.display = 'none';
+        const jobId = data.job_id;
+        localStorage.setItem('narrai_active_comic_job', jobId);
+
+        proAdvanceProgress(3); // Phân cảnh kịch bản
+        await pollComicJob(jobId);
+
+    } catch (e) {
+        if (loader) loader.style.display = 'none';
+        console.warn('[NarrAI Pro] Job workflow error:', e);
+        // Direct fallback
+        await adaptToComicDirect(text);
+    }
+}
+
+async function adaptToComicDirect(text) {
+    const loader = document.getElementById('comicLoading');
+    const grid = document.getElementById('comicGrid');
+    try {
+        if (loader) loader.style.display = 'block';
+        proAdvanceProgress(4);
+        const res = await fetch(`${API_URL}/comic/generate-pro`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                story_id: globalData.storyId || null,
+                story_text: text.substring(0, 30000),
+                genre: '',
+                style: ''
+            })
+        });
+        const data = await res.json();
+        if (loader) loader.style.display = 'none';
+        proAdvanceProgress(5);
         proCompleteProgress();
-
-        if (data.status === 'success') {
-            if (!Array.isArray(data.panels) || data.panels.length === 0) {
-                throw new Error('Không tạo được khung tranh.');
-            }
-
-            // Render using Storyboard Director, Reading Flow & Paneling Engine
+        if (data.status === 'success' && Array.isArray(data.panels) && data.panels.length > 0) {
+            grid.innerHTML = '';
             const acts = groupPanelsIntoStoryboardActs(data.panels);
             renderStoryboardDirectorDeck(data.panels.length, acts.length, grid);
             acts.forEach((act, actIdx) => {
                 renderStoryboardAct(act, actIdx, grid);
             });
-
         } else {
-            alert('Lỗi tạo truyện tranh: ' + (data.message || data.detail || 'Lỗi hệ thống'));
+            alert(data.message || 'Không thể hoàn thành truyện tranh lúc này.');
         }
-
     } catch(e) {
-        loader.style.display = 'none';
-        console.warn('[NarrAI Pro] generate-pro failed, trying generate fallback:', e.message);
+        if (loader) loader.style.display = 'none';
+        alert('Lỗi tạo truyện tranh: ' + e.message);
+    }
+}
+
+async function pollComicJob(jobId) {
+    const loader = document.getElementById('comicLoading');
+    const grid = document.getElementById('comicGrid');
+    let attempts = 0;
+    const maxAttempts = 180; // 6 minutes max
+
+    while (attempts < maxAttempts) {
+        attempts++;
+        await new Promise(r => setTimeout(r, 2000));
+
         try {
-            const res2 = await fetch(`${API_URL}/comic/generate`, {
-                method: 'POST',
-                headers: authHeaders(),
-                body: JSON.stringify({
-                    story_id: globalData.storyId || null,
-                    story_text: text.substring(0, 30000),
-                    enhancement_mode: currentEnhancementMode,
-                    strength: currentEnhancementStrength
-                })
+            const res = await fetch(`${API_URL}/comic/jobs/${jobId}`, {
+                headers: authHeaders()
             });
-            if (res2.ok) {
-                const data2 = await res2.json();
-                if (data2.status === 'success' && Array.isArray(data2.panels)) {
-                    const acts = groupPanelsIntoStoryboardActs(data2.panels);
-                    renderStoryboardDirectorDeck(data2.panels.length, acts.length, grid);
+            if (!res.ok) continue;
+
+            const data = await res.json();
+            const job = data.job;
+
+            // Update UI step indicator
+            if (job.progress_percent >= 80) {
+                proAdvanceProgress(5);
+            } else if (job.progress_percent >= 20) {
+                proAdvanceProgress(4);
+            }
+
+            const statusEl = document.getElementById('enhancementStatusText');
+            if (statusEl && job.current_step) {
+                statusEl.innerText = `Tiến trình: ${job.current_step} (${job.progress_percent}%)`;
+            }
+
+            // Check completion or partial state
+            if (job.status === 'completed' || job.status === 'partial') {
+                localStorage.removeItem('narrai_active_comic_job');
+                proAdvanceProgress(5);
+                await new Promise(r => setTimeout(r, 300));
+                if (loader) loader.style.display = 'none';
+                proCompleteProgress();
+
+                if (Array.isArray(data.panels) && data.panels.length > 0) {
+                    grid.innerHTML = '';
+                    const acts = groupPanelsIntoStoryboardActs(data.panels);
+                    renderStoryboardDirectorDeck(data.panels.length, acts.length, grid);
                     acts.forEach((act, actIdx) => {
                         renderStoryboardAct(act, actIdx, grid);
                     });
-                    return;
                 }
+                return;
+            } else if (job.status === 'failed') {
+                localStorage.removeItem('narrai_active_comic_job');
+                if (loader) loader.style.display = 'none';
+
+                if (Array.isArray(data.panels) && data.panels.length > 0) {
+                    grid.innerHTML = '';
+                    const acts = groupPanelsIntoStoryboardActs(data.panels);
+                    renderStoryboardDirectorDeck(data.panels.length, acts.length, grid);
+                    acts.forEach((act, actIdx) => {
+                        renderStoryboardAct(act, actIdx, grid);
+                    });
+                    if (job.error_message) {
+                        alert(job.error_message);
+                    }
+                } else {
+                    alert(job.error_message || 'Không thể tạo truyện tranh lúc này.');
+                }
+                return;
             }
-        } catch(e2) { console.warn('Fallback also failed:', e2); }
-        alert(`Không thể tạo truyện tranh: ${e.message}`);
+
+        } catch (pollErr) {
+            console.warn('[NarrAI Pro] Polling error:', pollErr);
+        }
+    }
+
+    if (loader) loader.style.display = 'none';
+    alert('Tiến trình tạo truyện tranh kéo dài hơn dự kiến. Bạn vui lòng tải lại trang (F5) để xem kết quả.');
+}
+
+async function checkAndResumeComicJob(jobId) {
+    if (!jobId) return;
+    try {
+        const res = await fetch(`${API_URL}/comic/jobs/${jobId}`, { headers: authHeaders() });
+        if (!res.ok) {
+            localStorage.removeItem('narrai_active_comic_job');
+            return;
+        }
+        const data = await res.json();
+        const job = data.job;
+        if (job.status === 'processing' || job.status === 'pending') {
+            document.getElementById('editorView').style.display = 'none';
+            document.getElementById('comicView').style.display = 'block';
+            if (typeof BackgroundManager !== 'undefined') BackgroundManager.setContext('comic');
+            const loader = document.getElementById('comicLoading');
+            if (loader) loader.style.display = 'block';
+            await pollComicJob(jobId);
+        } else {
+            localStorage.removeItem('narrai_active_comic_job');
+        }
+    } catch(e) {
+        localStorage.removeItem('narrai_active_comic_job');
     }
 }
+
 
 function backToEditor() {
     document.getElementById('comicView').style.display = 'none';
@@ -2845,12 +3088,19 @@ async function endStory() {
     }
 }
 
-// Initialize AI Studio Chatbot Background Controller
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        if (typeof AIStudioChat !== 'undefined') AIStudioChat.init();
-    });
-} else {
+// Initialize AI Studio Chatbot Background Controller & Active Comic Recovery
+function initAppBootstrap() {
     if (typeof AIStudioChat !== 'undefined') AIStudioChat.init();
+    const savedJobId = localStorage.getItem('narrai_active_comic_job');
+    if (savedJobId) {
+        checkAndResumeComicJob(savedJobId);
+    }
 }
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAppBootstrap);
+} else {
+    initAppBootstrap();
+}
+
 

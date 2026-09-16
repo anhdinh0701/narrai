@@ -1,11 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi import FastAPI, Depends, HTTPException, status, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 import json
 import os
 import time
+import logging
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 # Load .env from current directory
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
@@ -64,8 +67,8 @@ def get_story_generator():
 
 import re
 from datetime import datetime
-from fastapi.responses import StreamingResponse, JSONResponse, RedirectResponse
-from db.models import Story, User, AuthAccount, TokenBlacklist, engine
+from fastapi.responses import StreamingResponse, JSONResponse, RedirectResponse, FileResponse
+from db.models import Story, User, AuthAccount, TokenBlacklist, Comic, ComicPanel, ComicJob, engine
 from sqlalchemy.orm import sessionmaker, Session
 from auth import (
     verify_password, get_password_hash,
@@ -591,6 +594,414 @@ async def get_stage_image(stage: str, filename: str):
 
     return FileResponse(file_path, media_type="image/png")
 
+# ================= COMIC BACKGROUND JOBS & STORY PIPELINE =================
+import uuid
+
+class CreateComicJobRequest(BaseModel):
+    story_id: Optional[int] = None
+    story_text: Optional[str] = ""
+    genre: Optional[str] = ""
+    style: Optional[str] = ""
+    enhancement_mode: Optional[str] = "none"
+
+def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: str, genre: str, style: str, user_id: Optional[int]):
+    """
+    Background Task: Executes 8-stage Story-to-Comic generation pipeline.
+    Updates ComicJob in real-time so frontend polling reflects live progress.
+    """
+    db = SessionLocal()
+    try:
+        job = db.query(ComicJob).filter(ComicJob.id == job_id).first()
+        if not job:
+            return
+        
+        job.status = "processing"
+        job.progress_percent = 5
+        job.current_step = "Đang phân tích kịch bản & thiết kế nhân vật..."
+        db.commit()
+
+        # Step 1: Script & Bibles extraction (Character Bible + Location Bible)
+        from agents.pro_comic_agent import ProComicAgent
+        agent = ProComicAgent()
+        script_data = agent.generate(story_text=story_text, genre=genre, style=style)
+
+        char_bible = script_data.get("character_bible", [])
+        loc_bible = script_data.get("location_bible", [])
+        story_setting = script_data.get("story_setting", "")
+        panels_plan = script_data.get("panels", [])
+
+        # Create or update Comic record
+        comic = None
+        if job.comic_id:
+            comic = db.query(Comic).filter(Comic.id == job.comic_id).first()
+        if not comic:
+            comic = Comic(
+                user_id=user_id,
+                story_id=story_id,
+                title="Truyện tranh Chuyển thể",
+                character_bible=json.dumps(char_bible, ensure_ascii=False),
+                location_bible=json.dumps(loc_bible, ensure_ascii=False),
+                story_setting=story_setting,
+                status="processing"
+            )
+            db.add(comic)
+            db.commit()
+            db.refresh(comic)
+            job.comic_id = comic.id
+        else:
+            comic.character_bible = json.dumps(char_bible, ensure_ascii=False)
+            comic.location_bible = json.dumps(loc_bible, ensure_ascii=False)
+            comic.story_setting = story_setting
+            comic.status = "processing"
+
+        job.total_panels = len(panels_plan)
+        job.current_step = f"Đã xây dựng kịch bản {len(panels_plan)} khung tranh. Bắt đầu vẽ tranh..."
+        job.progress_percent = 20
+        db.commit()
+
+        # Step 2: Initialize panel records in DB (so frontend immediately gets the script, characters, and dialogues)
+        panel_records = []
+        for idx, p_data in enumerate(panels_plan):
+            p_idx = p_data.get("panel_index", idx + 1)
+            raw_s = str(p_data.get("scene_id", "1")).upper().replace("S", "").strip()
+            scene_val = int(raw_s) if raw_s.isdigit() else 1
+            p_rec = ComicPanel(
+                comic_id=comic.id,
+                panel_index=p_idx,
+                scene_id=scene_val,
+                location_name=p_data.get("location_name", ""),
+                character_names=p_data.get("character_names", ""),
+                action_description=p_data.get("action", ""),
+                emotion=p_data.get("emotion", ""),
+                camera_angle=p_data.get("camera_angle", ""),
+                image_prompt=p_data.get("image_prompt", ""),
+                dialogue_text=p_data.get("dialogue", ""),
+                speaker_name=p_data.get("speaker", ""),
+                bubble_type=p_data.get("bubble_type", "speech"),
+                narration_text=p_data.get("narration", ""),
+                layout_type=p_data.get("layout_type", "square"),
+                generation_status="pending"
+            )
+            db.add(p_rec)
+            panel_records.append(p_rec)
+        db.commit()
+
+        # Step 3: Sequential Image Generation via Primary Provider (Stability AI)
+        from services.image_provider import ImageProviderFactory
+        stability_provider = ImageProviderFactory.get_primary_provider()
+        backend_dir = os.path.dirname(os.path.abspath(__file__))
+        final_dir = os.path.join(backend_dir, "outputs", "final")
+        os.makedirs(final_dir, exist_ok=True)
+
+        credit_warning_logged = False
+
+        for i, panel in enumerate(panel_records):
+            job.current_step = f"Đang vẽ tranh khung {i + 1}/{len(panel_records)}..."
+            job.progress_percent = int(20 + ((i) / len(panel_records)) * 75)
+            panel.generation_status = "generating"
+            db.commit()
+
+            seed_val = (comic.id * 100) + panel.panel_index
+            result = stability_provider.generate_image(
+                prompt=panel.image_prompt,
+                aspect_ratio=panel.layout_type,
+                seed=seed_val
+            )
+
+            if result.get("success") and result.get("image_bytes"):
+                fn = f"panel_{comic.id}_{panel.panel_index}_{uuid.uuid4().hex[:8]}.png"
+                fp = os.path.join(final_dir, fn)
+                with open(fp, "wb") as f:
+                    f.write(result["image_bytes"])
+                
+                panel_url = f"/api/images/final/{fn}"
+                panel.original_image_url = panel_url
+                panel.processed_image_url = panel_url
+                panel.final_image_url = panel_url
+                panel.image_url = panel_url
+                panel.enhancement_provider = "stability"
+                panel.enhancement_mode = "text-to-image"
+                panel.enhancement_status = "completed"
+                panel.generation_status = "completed"
+                panel.error_message = None
+                job.completed_panels += 1
+            else:
+                err_code = result.get("error_code")
+                err_msg = result.get("error_message") or "Không thể tạo ảnh cho khung tranh này"
+                panel.generation_status = "failed"
+                panel.error_message = f"[{err_code}] {err_msg}"
+                if err_code == "INSUFFICIENT_CREDITS" and not credit_warning_logged:
+                    job.error_message = (
+                        "Tài khoản Stability AI của bạn hiện chưa có đủ credits (cần nạp thêm tại platform.stability.ai). "
+                        "Hệ thống đã lưu lại kịch bản, lời thoại và bố cục khung tranh hoàn chỉnh."
+                    )
+                    credit_warning_logged = True
+
+            db.commit()
+
+        # Step 4: Finalize Job
+        comic.status = "ready"
+        job.progress_percent = 100
+        if job.completed_panels == job.total_panels:
+            job.status = "completed"
+            job.current_step = "Hoàn tất chuyển thể truyện tranh!"
+        elif job.completed_panels > 0:
+            job.status = "partial"
+            job.current_step = f"Đã hoàn thành {job.completed_panels}/{job.total_panels} khung tranh."
+        else:
+            job.status = "failed"
+            job.current_step = "Chưa thể tạo ảnh vì tài khoản Stability AI chưa có credits."
+
+        db.commit()
+
+    except Exception as e:
+        logger.error(f"[ComicJob] Fatal job failure: {repr(e)}")
+        try:
+            job = db.query(ComicJob).filter(ComicJob.id == job_id).first()
+            if job:
+                job.status = "failed"
+                job.error_message = str(e)
+                job.current_step = f"Lỗi hệ thống: {repr(e)}"
+                db.commit()
+        except Exception:
+            pass
+    finally:
+        db.close()
+
+
+@app.post("/api/comic/jobs/create")
+def create_comic_job(
+    request: CreateComicJobRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    user_id = current_user.id if current_user else None
+    if not user_id:
+        first_user = db.query(User).first()
+        if first_user:
+            user_id = first_user.id
+
+    effective_text = (request.story_text or "").strip()
+    if not effective_text or len(effective_text) < 5:
+        if request.story_id:
+            s_rec = db.query(Story).filter(Story.id == request.story_id).first()
+            if s_rec and s_rec.story_content:
+                effective_text = s_rec.story_content
+        if not effective_text:
+            effective_text = "Một câu chuyện hành động kịch tính và hào hùng, nhân vật chính bước lên đỉnh cao võ học."
+
+    job_id = f"job_{uuid.uuid4().hex[:16]}"
+    job = ComicJob(
+        id=job_id,
+        user_id=user_id,
+        story_id=request.story_id,
+        status="pending",
+        progress_percent=0,
+        current_step="Đang khởi tạo tiến trình tạo truyện tranh..."
+    )
+    db.add(job)
+    db.commit()
+
+    background_tasks.add_task(
+        run_comic_generation_job,
+        job_id,
+        request.story_id,
+        effective_text,
+        request.genre or "",
+        request.style or "",
+        user_id
+    )
+
+    return {"status": "success", "job_id": job_id}
+
+
+@app.get("/api/comic/jobs/{job_id}")
+def get_comic_job_status(job_id: str, db: Session = Depends(get_db)):
+    job = db.query(ComicJob).filter(ComicJob.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Không tìm thấy tiến trình này.")
+
+    comic = db.query(Comic).filter(Comic.id == job.comic_id).first() if job.comic_id else None
+
+    panels_data = []
+    char_bible = []
+    loc_bible = []
+    story_setting = ""
+
+    if comic:
+        if comic.character_bible:
+            try:
+                char_bible = json.loads(comic.character_bible)
+            except Exception:
+                char_bible = []
+        if comic.location_bible:
+            try:
+                loc_bible = json.loads(comic.location_bible)
+            except Exception:
+                loc_bible = []
+        story_setting = comic.story_setting or ""
+
+        for p in comic.panels:
+            panels_data.append({
+                "id": p.id,
+                "panel_index": p.panel_index,
+                "scene_id": p.scene_id,
+                "location_name": p.location_name,
+                "character_names": p.character_names,
+                "action_description": p.action_description,
+                "emotion": p.emotion,
+                "camera_angle": p.camera_angle,
+                "image_prompt": p.image_prompt,
+                "dialogue_text": p.dialogue_text,
+                "dialogue": p.dialogue_text,
+                "speaker_name": p.speaker_name,
+                "speaker": p.speaker_name,
+                "bubble_type": p.bubble_type or ("speech" if p.dialogue_text else "none"),
+                "narration": p.narration_text or "",
+                "narration_text": p.narration_text or "",
+                "layout_type": p.layout_type or "square",
+                "image_url": p.final_image_url or p.image_url,
+                "original_image_url": p.original_image_url,
+                "processed_image_url": p.processed_image_url,
+                "final_image_url": p.final_image_url,
+                "enhancement_provider": p.enhancement_provider,
+                "enhancement_mode": p.enhancement_mode,
+                "enhancement_status": p.enhancement_status,
+                "generation_status": p.generation_status or ("completed" if (p.final_image_url or p.image_url) else "pending"),
+                "error_message": p.error_message
+            })
+
+    return {
+        "status": "success",
+        "job": {
+            "id": job.id,
+            "status": job.status,
+            "current_step": job.current_step,
+            "progress_percent": job.progress_percent,
+            "total_panels": job.total_panels,
+            "completed_panels": job.completed_panels,
+            "error_message": job.error_message,
+            "comic_id": job.comic_id
+        },
+        "character_bible": char_bible,
+        "location_bible": loc_bible,
+        "story_setting": story_setting,
+        "panels": panels_data
+    }
+
+
+class RetryPanelRequest(BaseModel):
+    custom_prompt: Optional[str] = None
+
+@app.post("/api/comic/panels/{panel_id}/retry")
+def retry_comic_panel(panel_id: int, request: RetryPanelRequest = RetryPanelRequest(), db: Session = Depends(get_db)):
+    panel = db.query(ComicPanel).filter(ComicPanel.id == panel_id).first()
+    if not panel:
+        raise HTTPException(status_code=404, detail="Không tìm thấy khung tranh.")
+
+    from services.image_provider import ImageProviderFactory
+    stability_provider = ImageProviderFactory.get_primary_provider()
+
+    effective_prompt = (request.custom_prompt or panel.image_prompt or "masterpiece full color anime webtoon illustration").strip()
+    panel.generation_status = "generating"
+    db.commit()
+
+    import random
+    new_seed = random.randint(1000, 99999999)
+    result = stability_provider.generate_image(
+        prompt=effective_prompt,
+        aspect_ratio=panel.layout_type or "square",
+        seed=new_seed
+    )
+
+    if result.get("success") and result.get("image_bytes"):
+        backend_dir = os.path.dirname(os.path.abspath(__file__))
+        final_dir = os.path.join(backend_dir, "outputs", "final")
+        os.makedirs(final_dir, exist_ok=True)
+        fn = f"panel_retry_{panel.comic_id}_{panel.panel_index}_{uuid.uuid4().hex[:8]}.png"
+        fp = os.path.join(final_dir, fn)
+        with open(fp, "wb") as f:
+            f.write(result["image_bytes"])
+
+        panel_url = f"/api/images/final/{fn}"
+        panel.image_url = panel_url
+        panel.final_image_url = panel_url
+        panel.processed_image_url = panel_url
+        panel.enhancement_provider = "stability"
+        panel.generation_status = "completed"
+        panel.error_message = None
+        db.commit()
+        db.refresh(panel)
+        return {
+            "status": "success",
+            "panel": {
+                "id": panel.id,
+                "panel_index": panel.panel_index,
+                "image_url": panel.image_url,
+                "final_image_url": panel.final_image_url,
+                "generation_status": panel.generation_status
+            }
+        }
+    else:
+        err_code = result.get("error_code")
+        err_msg = result.get("error_message") or "Không thể tạo lại ảnh cho khung này"
+        panel.generation_status = "failed"
+        panel.error_message = f"[{err_code}] {err_msg}"
+        db.commit()
+        return {
+            "status": "error",
+            "error_code": err_code,
+            "message": err_msg
+        }
+
+
+@app.post("/api/comic/panels/{panel_id}/enhance-comfyui")
+def enhance_panel_with_comfyui(panel_id: int, db: Session = Depends(get_db)):
+    panel = db.query(ComicPanel).filter(ComicPanel.id == panel_id).first()
+    if not panel:
+        raise HTTPException(status_code=404, detail="Không tìm thấy khung tranh.")
+
+    from services.image_provider import ImageProviderFactory
+    comfy_provider = ImageProviderFactory.get_local_enhancer()
+    if not comfy_provider.is_available():
+        return {
+            "status": "error",
+            "message": "ComfyUI hiện đang tắt trên máy tính của bạn. Hãy khởi động ComfyUI (cổng 8188) để sử dụng tính năng này."
+        }
+
+    res = comfy_provider.generate_image(prompt=panel.image_prompt or "comic manga scene")
+    if res.get("success") and res.get("image_bytes"):
+        backend_dir = os.path.dirname(os.path.abspath(__file__))
+        proc_dir = os.path.join(backend_dir, "outputs", "processed")
+        os.makedirs(proc_dir, exist_ok=True)
+        fn = f"panel_comfy_{panel.comic_id}_{panel.panel_index}_{uuid.uuid4().hex[:8]}.png"
+        fp = os.path.join(proc_dir, fn)
+        with open(fp, "wb") as f:
+            f.write(res["image_bytes"])
+
+        panel_url = f"/api/images/processed/{fn}"
+        panel.processed_image_url = panel_url
+        panel.final_image_url = panel_url
+        panel.image_url = panel_url
+        panel.enhancement_provider = "comfyui"
+        db.commit()
+        db.refresh(panel)
+        return {
+            "status": "success",
+            "panel": {
+                "id": panel.id,
+                "panel_index": panel.panel_index,
+                "image_url": panel.image_url,
+                "final_image_url": panel.final_image_url
+            }
+        }
+    else:
+        return {
+            "status": "error",
+            "message": res.get("error_message") or "Không thể xử lý qua ComfyUI"
+        }
+
 class ComicRequest(BaseModel):
     story_id: Optional[int] = None
     story_text: Optional[str] = ""
@@ -751,7 +1162,23 @@ def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), cu
         panels_plan = panels_plan[:max_panels]
 
     # Step 2: Save Comic to DB
-    comic = Comic(user_id=user_id, story_id=request.story_id, title="Pro Comic")
+    character_bible = script_data.get("character_bible", [])
+    location_bible = script_data.get("location_bible", [])
+    story_setting = script_data.get("story_setting", "")
+    panels_plan = script_data.get("panels", [])
+
+    if len(panels_plan) > 8:
+        panels_plan = panels_plan[:8]
+
+    comic = Comic(
+        user_id=user_id,
+        story_id=request.story_id,
+        title="Pro Comic",
+        character_bible=json.dumps(character_bible, ensure_ascii=False),
+        location_bible=json.dumps(location_bible, ensure_ascii=False),
+        story_setting=story_setting,
+        status="ready"
+    )
     db.add(comic)
     db.commit()
     db.refresh(comic)
@@ -772,11 +1199,13 @@ def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), cu
         p_dialogue = item.get("dialogue") or item.get("dialogue_text") or ""
         p_layout = item.get("layout_type") or "square"
         p_idx = item.get("panel_index", idx + 1)
+        raw_s = str(item.get("scene_id", "1")).upper().replace("S", "").strip()
+        scene_val = int(raw_s) if raw_s.isdigit() else 1
 
-        # Stage 1: ComfyUI image generation with rich character-consistent prompt
-        raw_image = generate_comic_panel_image(p_img_prompt, seed=comic.id + p_idx)
+        # Stage 1: ComfyUI or Stability AI image generation
+        raw_image = generate_comic_panel_image(p_img_prompt, seed=comic.id + p_idx, layout_type=p_layout)
 
-        # Stage 2: Auto enhancement (Stability AI) — only first 2 panels in initial batch to avoid timeout
+        # Stage 2: Auto enhancement (Stability AI)
         panel_enh_mode = auto_mode if idx < 2 else "none"
 
         proc_result = post_processor.process_panel_image(
@@ -791,8 +1220,17 @@ def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), cu
         panel = ComicPanel(
             comic_id=comic.id,
             panel_index=p_idx,
+            scene_id=scene_val,
+            location_name=item.get("location_name") or item.get("location") or "",
+            character_names=item.get("character_names") or "",
+            action_description=item.get("action") or "",
+            emotion=item.get("emotion") or "",
+            camera_angle=item.get("camera_angle") or "",
             image_prompt=p_img_prompt,
             dialogue_text=p_dialogue,
+            speaker_name=item.get("speaker") or "",
+            bubble_type=item.get("bubble_type", "speech" if p_dialogue else "none"),
+            narration_text=item.get("narration") or "",
             layout_type=p_layout,
             image_url=proc_result["final_url"],
             original_image_url=proc_result["original_url"],
@@ -800,7 +1238,8 @@ def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), cu
             final_image_url=proc_result["final_url"],
             enhancement_provider=proc_result["provider"],
             enhancement_mode=proc_result["mode"],
-            enhancement_status=proc_result["status"]
+            enhancement_status=proc_result["status"],
+            generation_status="completed" if proc_result["final_url"] else "pending"
         )
         db.add(panel)
         db.commit()
@@ -818,26 +1257,32 @@ def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), cu
             "enhancement_status": panel.enhancement_status,
             "image_prompt": panel.image_prompt,
             "dialogue_text": p_dialogue,
+            "dialogue": p_dialogue,
             "layout_type": p_layout,
-            # Extra Pro fields for frontend compositor
-            "bubble_type": item.get("bubble_type", "speech" if p_dialogue else "none"),
-            "speaker": item.get("speaker", ""),
-            "narration": item.get("narration", ""),
-            "location": item.get("location", ""),
+            "bubble_type": panel.bubble_type,
+            "speaker": panel.speaker_name,
+            "speaker_name": panel.speaker_name,
+            "narration": panel.narration_text,
+            "narration_text": panel.narration_text,
+            "location_name": panel.location_name,
+            "location": panel.location_name,
             "time_of_day": item.get("time_of_day", ""),
-            "emotion": item.get("emotion", ""),
-            "scene_id": item.get("scene_id", ""),
+            "emotion": panel.emotion,
+            "scene_id": panel.scene_id,
             "shot_type": item.get("shot_type", ""),
-            "camera_angle": item.get("camera_angle", "")
+            "camera_angle": panel.camera_angle,
+            "generation_status": panel.generation_status
         })
 
     return {
         "status": "success",
         "comic_id": comic.id,
         "character_bible": character_bible,
+        "location_bible": location_bible,
         "story_setting": story_setting,
         "panels": panels_response
     }
+
 
 
 class EnhancePanelRequest(BaseModel):
