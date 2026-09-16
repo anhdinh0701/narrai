@@ -1155,20 +1155,15 @@ def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), cu
     story_setting = script_data.get("story_setting", "")
     panels_plan = script_data.get("panels", [])
 
-    # Target 12 to 16 panels for a rich, complete comic chapter
-    comfy_info = get_comfyui_status()
-    max_panels = 12 if comfy_info.get("connected") else 16
-    if len(panels_plan) > max_panels:
-        panels_plan = panels_plan[:max_panels]
-
     # Step 2: Save Comic to DB
     character_bible = script_data.get("character_bible", [])
     location_bible = script_data.get("location_bible", [])
     story_setting = script_data.get("story_setting", "")
     panels_plan = script_data.get("panels", [])
 
-    if len(panels_plan) > 8:
-        panels_plan = panels_plan[:8]
+    # Target 12 to 16 panels for a rich, complete comic chapter (allow up to 16)
+    if len(panels_plan) > 16:
+        panels_plan = panels_plan[:16]
 
     comic = Comic(
         user_id=user_id,

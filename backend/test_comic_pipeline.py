@@ -31,11 +31,11 @@ agent = ProComicAgent()
 fallback = agent._get_fallback()
 assert len(fallback["character_bible"]) >= 2, "Character bible should have characters"
 assert len(fallback["location_bible"]) >= 2, "Location bible should have locations"
-assert 6 <= len(fallback["panels"]) <= 8, f"Panels count should be 6-8, got {len(fallback['panels'])}"
+assert 10 <= len(fallback["panels"]) <= 16, f"Panels count should be 10-16, got {len(fallback['panels'])}"
 p1 = fallback["panels"][0]
 assert "dialogue" in p1 and len(p1["dialogue"]) > 0, "Panel 1 should have dialogue"
 assert "image_prompt" in p1 and "full color" in p1["image_prompt"].lower(), "Panel 1 prompt should be full color"
-print("ProComicAgent fallback verified: 6 panels, Character Bible & Location Bible consistent.")
+print(f"ProComicAgent fallback verified: {len(fallback['panels'])} panels, Character Bible & Location Bible consistent.")
 
 print("\n=== 3. Testing Image Provider Factory ===")
 primary = ImageProviderFactory.get_primary_provider()

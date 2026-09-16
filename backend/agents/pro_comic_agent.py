@@ -19,7 +19,7 @@ NHIỆM VỤ CỦA BẠN:
 1. Phân tích cốt truyện tiếng Việt được cung cấp.
 2. Xây dựng BẢNG THIẾT KẾ NHÂN VẬT (Character Bible) chi tiết, nhất quán (ID, tên tiếng Việt, tuổi, ngoại hình chi tiết về tóc/mắt/khuôn mặt/vóc dáng, trang phục đặc trưng với màu sắc rõ ràng, tính cách, base_prompt bằng tiếng Anh).
 3. Xây dựng BẢNG THIẾT KẾ BỐI CẢNH (Location Bible) chi tiết (ID, tên bối cảnh tiếng Việt, kiến trúc, ánh sáng, bầu không khí, base_prompt bằng tiếng Anh).
-4. Phân rã câu chuyện thành từ 6 ĐẾN 8 KHUNG TRANH (Panels) mạch lạc, có sự phát triển liên tục (Story Progression).
+4. Phân rã câu chuyện thành từ 10 ĐẾN 16 KHUNG TRANH (Panels) mạch lạc, có sự phát triển liên tục (Story Progression).
 5. Đảm bảo tính LIÊN TỤC VÀ ĐỒNG NHẤT (Continuity):
    - Nhân vật xuất hiện trong các khung tranh phải giữ nguyên trang phục, màu tóc, đặc điểm nhận diện.
    - Bối cảnh phải duy trì ánh sáng, thời gian và không gian hợp lý.
@@ -78,7 +78,7 @@ OUTPUT FORMAT (STRICT JSON ONLY, không có markdown code blocks ```json, không
 }
 
 QUY TẮC BẮT BUỘC:
-- Số lượng panels: BẮT BUỘC TỪ 6 ĐẾN 8 KHUNG TRANH (minimum 6, target 6-8).
+- Số lượng panels: BẮT BUỘC TỪ 10 ĐẾN 16 KHUNG TRANH (minimum 10, target 12-16 khung tranh diễn biến đầy đủ mạch lạc).
 - bubble_type: "speech" (nói thông thường) | "shout" (hét to, ra chiêu) | "thought" (suy nghĩ) | "whisper" (thì thầm) | "narration" (lời dẫn) | "none" (không có thoại).
 - layout_type: "wide" (khung phong cảnh, đại cảnh) | "tall" (khung dọc, toàn thân, nhân vật đứng) | "square" (trung cảnh, cận cảnh).
 - image_prompt: Đầy đủ màu sắc (FULL COLOR), phong cách anime/webtoon, TUYỆT ĐỐI KHÔNG chứa bong bóng thoại hay chữ trong ảnh (no text, no speech bubbles).
@@ -99,7 +99,7 @@ class ProComicAgent:
         genre_hint = f"\nThể loại: {genre}" if genre else ""
         style_hint = f"\nPhong cách hội họa: {style}" if style else ""
         user_prompt = (
-            f"Hãy chuyển thể câu chuyện sau thành kịch bản truyện tranh hoàn chỉnh 6-8 khung tranh, "
+            f"Hãy chuyển thể câu chuyện sau thành kịch bản truyện tranh hoàn chỉnh từ 10-16 khung tranh (tối thiểu 10 khung, khuyến khích 12-16 khung), "
             f"kèm Character Bible, Location Bible và continuity rules:{genre_hint}{style_hint}\n\n{trimmed}"
         )
 
@@ -124,7 +124,7 @@ class ProComicAgent:
         return self._get_fallback()
 
     def _process_script_data(self, data: Dict[str, Any], style: str = "") -> Dict[str, Any]:
-        """Validates, caps panel count to 6-8, and enriches image prompts with Bibles."""
+        """Validates, caps panel count to 10-16, and enriches image prompts with Bibles."""
         char_bible = data.get("character_bible", [])
         if not isinstance(char_bible, list):
             char_bible = []
@@ -136,8 +136,8 @@ class ProComicAgent:
         loc_map = {l.get("loc_id", f"LOC_{i+1:03d}"): l for i, l in enumerate(loc_bible)}
 
         panels = data.get("panels", [])
-        if len(panels) > 8:
-            panels = panels[:8]
+        if len(panels) > 16:
+            panels = panels[:16]
 
         validated_panels = []
         for i, p in enumerate(panels):
@@ -228,7 +228,7 @@ class ProComicAgent:
         }
 
     def _get_fallback(self) -> Dict[str, Any]:
-        """Rich 6-panel fallback ensuring coherent story, full-color prompts, and consistent characters."""
+        """Rich 12-panel fallback ensuring coherent 3-act story, full-color prompts, and consistent characters."""
         return {
             "character_bible": [
                 {
@@ -381,22 +381,148 @@ class ProComicAgent:
                     "panel_index": 6,
                     "scene_id": "S02",
                     "location_id": "LOC_002",
-                    "location_name": "Tâm Điện Thần Thượng Cổ",
-                    "time_of_day": "timeless",
-                    "weather": "cosmic starlight aura",
+                    "location_name": "Đại Điện Cổ",
+                    "time_of_day": "noon",
+                    "weather": "mystical starlight",
                     "characters": ["CHAR_001", "CHAR_002"],
                     "character_names": "Nguyễn Minh, Linh Nhi",
-                    "action": "Nguyễn Minh và Linh Nhi kề vai ngắm nhìn cuộn bí kíp thần thoại lơ lửng giữa trời sao",
-                    "emotion": "hào hùng, tin tưởng",
-                    "camera_angle": "epic wide landscape shot",
-                    "previous_panel_summary": "Cánh cổng mở ra, cả hai bước vào tâm điện.",
-                    "continuity_rules": "Cả hai nhân vật đứng song song, hướng ánh mắt về bí kíp tỏa sáng rực rỡ.",
+                    "action": "Cả hai cùng bước vào sảnh điện nguy nga, ánh mắt choáng ngợp trước những cột đá thần tích",
+                    "emotion": "kinh ngạc, kính cẩn",
+                    "camera_angle": "grand wide angle shot",
+                    "previous_panel_summary": "Cánh cổng thần bí vừa mở toang.",
+                    "continuity_rules": "Nguyễn Minh và Linh Nhi sánh vai bước qua ngưỡng cửa điện thần.",
                     "speaker": "Nguyễn Minh",
-                    "dialogue": "Giang sơn vạn dặm... Hành trình vĩ đại của chúng ta chính thức bắt đầu!",
-                    "bubble_type": "shout",
-                    "narration": "Một huyền thoại mới chính thức khai sinh trên lục địa huyền bí.",
+                    "dialogue": "Nơi này... tựa như đã ngủ quên từ vạn kiếp trước.",
+                    "bubble_type": "whisper",
+                    "narration": "Không gian tĩnh mịch ngập tràn cổ ngữ phát sáng lung linh.",
                     "layout_type": "wide",
-                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, epic wide landscape shot. CHAR_001 in dark navy robe and CHAR_002 in flowing white-pink dress standing proudly side by side inside grand celestial sanctuary, gazing up at magnificent golden glowing sacred scroll floating amid cosmic starlight nebula, breathtaking masterpiece, vibrant colors, 8k, no text, no speech bubbles"
+                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, grand wide angle shot. CHAR_001 and CHAR_002 stepping together into magnificent ancient temple hall, massive glowing marble pillars, mystical floating runic lanterns, golden stardust in air, breathtaking scale, 8k, no text, no speech bubbles"
+                },
+                {
+                    "panel_index": 7,
+                    "scene_id": "S02",
+                    "location_id": "LOC_002",
+                    "location_name": "Hành lang Thần Cổ",
+                    "time_of_day": "afternoon",
+                    "weather": "dim mystical light",
+                    "characters": ["CHAR_001"],
+                    "character_names": "Nguyễn Minh",
+                    "action": "Nguyễn Minh vung kiếm chặn đứng cạm bẫy mũi tên ánh sáng để che chắn cho Linh Nhi",
+                    "emotion": "quyết liệt, dũng cảm",
+                    "camera_angle": "dynamic action shot",
+                    "previous_panel_summary": "Cả hai đang di chuyển sâu vào hành lang điện thần.",
+                    "continuity_rules": "Chiến bào xanh đen của Nguyễn Minh đón đầu hiểm nguy, kiếm bạc tỏa sáng.",
+                    "speaker": "Nguyễn Minh",
+                    "dialogue": "Cẩn thận! Trận pháp kích hoạt! Hãy đứng sau lưng ta!",
+                    "bubble_type": "shout",
+                    "narration": "Cạm bẫy cổ đại đồng loạt bừng tỉnh ngăn chặn kẻ đột nhập.",
+                    "layout_type": "tall",
+                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, dynamic action shot. CHAR_001 handsome young hero in dark navy robe swinging gleaming silver sword to deflect showers of glowing crystal light arrows, azure sword trail, protective heroic pose, ancient stone corridor, dramatic sparks, 8k, no text, no speech bubbles"
+                },
+                {
+                    "panel_index": 8,
+                    "scene_id": "S02",
+                    "location_id": "LOC_002",
+                    "location_name": "Tiền sảnh Cấm Địa",
+                    "time_of_day": "afternoon",
+                    "weather": "shadowy ominous glow",
+                    "characters": ["CHAR_001", "CHAR_002"],
+                    "character_names": "Nguyễn Minh, Linh Nhi",
+                    "action": "Thạch tượng thủ vệ khổng lồ mở bừng đôi mắt đỏ rực, chấn động cả sàn đá",
+                    "emotion": "căng thẳng, cảnh giác cao độ",
+                    "camera_angle": "dramatic low angle shot",
+                    "previous_panel_summary": "Nguyễn Minh vừa phá vỡ cạm bẫy mũi tên ánh sáng.",
+                    "continuity_rules": "Cả hai nhân vật đối diện với bóng dáng thạch tượng đồ sộ.",
+                    "speaker": "Linh Nhi",
+                    "dialogue": "Thạch Tượng Cổ Vệ ngàn năm đã thức tỉnh... Không thể đối kháng bằng sức mạnh thông thường!",
+                    "bubble_type": "whisper",
+                    "narration": "Tiếng gầm rú bằng đá rền vang làm rung chuyển nền móng điện thần.",
+                    "layout_type": "wide",
+                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, dramatic low angle shot. Enormous ancient stone guardian titan with blazing crimson runic eyes rising from palace floor, CHAR_001 drawing sword and CHAR_002 preparing magic talisman, towering ominous presence, epic fantasy atmosphere, 8k, no text, no speech bubbles"
+                },
+                {
+                    "panel_index": 9,
+                    "scene_id": "S02",
+                    "location_id": "LOC_002",
+                    "location_name": "Chiến trường Thần Điện",
+                    "time_of_day": "dusk",
+                    "weather": "blazing energy storms",
+                    "characters": ["CHAR_001"],
+                    "character_names": "Nguyễn Minh",
+                    "action": "Nguyễn Minh bật nhảy lên không trung, phóng xuất kiếm khí Thanh Long chém về phía thủ vệ",
+                    "emotion": "hào hùng, bùng nổ sức mạnh",
+                    "camera_angle": "extreme dynamic action shot",
+                    "previous_panel_summary": "Thạch tượng khổng lồ tấn công dồn dập.",
+                    "continuity_rules": "Kiếm bạc hóa thành luồng rồng xanh lam bao quanh Nguyễn Minh.",
+                    "speaker": "Nguyễn Minh",
+                    "dialogue": "Thanh Long Phá Thiên! Hãy mở đường cho chúng ta!",
+                    "bubble_type": "shout",
+                    "narration": "Kiếm ý tung hoành tạo thành một màn tráng quan tuyệt đỉnh.",
+                    "layout_type": "tall",
+                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, extreme dynamic action shot. CHAR_001 leaping airborne with sword, radiating massive swirling silver-blue ethereal dragon aura, striking towards massive stone monster, glowing impact fissures, wind pressure tearing robes, highly detailed 8k, no text, no speech bubbles"
+                },
+                {
+                    "panel_index": 10,
+                    "scene_id": "S02",
+                    "location_id": "LOC_002",
+                    "location_name": "Trận Pháp Trung Tâm",
+                    "time_of_day": "dusk",
+                    "weather": "calm emerald luminescence",
+                    "characters": ["CHAR_002"],
+                    "character_names": "Linh Nhi",
+                    "action": "Linh Nhi niệm phép ấn, hoa sen ngọc bích tỏa sáng xoa dịu cuồng nộ của thủ vệ",
+                    "emotion": "tập trung thanh tịnh, từ bi",
+                    "camera_angle": "luminous medium shot",
+                    "previous_panel_summary": "Nguyễn Minh kìm chân thủ vệ bằng đòn kiếm rồng phá thiên.",
+                    "continuity_rules": "Linh Nhi nâng cao ngọc bội hoa sen, dải lụa trắng hồng bồng bềnh trong ánh quang.",
+                    "speaker": "Linh Nhi",
+                    "dialogue": "Oán niệm ngàn năm... Hãy quy về tĩnh lặng!",
+                    "bubble_type": "shout",
+                    "narration": "Sự hòa hợp giữa sức mạnh cương trực và nhu thuận đã hóa giải phong ấn.",
+                    "layout_type": "square",
+                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, luminous medium shot. CHAR_002 beautiful anime girl casting peaceful ancient seal, jade lotus amulet floating above her hands radiating brilliant concentric circles of emerald green light, calming the battle, elegant silk dress fluttering, serene expression, 8k, no text, no speech bubbles"
+                },
+                {
+                    "panel_index": 11,
+                    "scene_id": "S02",
+                    "location_id": "LOC_002",
+                    "location_name": "Tâm Điện Thần Thượng Cổ",
+                    "time_of_day": "night",
+                    "weather": "divine cosmic starlight",
+                    "characters": ["CHAR_001", "CHAR_002"],
+                    "character_names": "Nguyễn Minh, Linh Nhi",
+                    "action": "Nguyễn Minh tiếp nhận cuộn bí kíp thần thoại tỏa sáng vàng kim đang từ từ hạ xuống bàn tay",
+                    "emotion": "thiêng liêng, hạnh phúc, tin tưởng",
+                    "camera_angle": "cinematic eye-level shot",
+                    "previous_panel_summary": "Thủ vệ đã hóa giải phong ấn, cấm địa hoàn toàn mở lối.",
+                    "continuity_rules": "Nguyễn Minh và Linh Nhi đứng bên nhau đón nhận bí kíp thần tích.",
+                    "speaker": "Nguyễn Minh",
+                    "dialogue": "Bí kíp Thượng Cổ... Cuối cùng ta đã có thể cứu vãn sự tồn vong của sư môn!",
+                    "bubble_type": "speech",
+                    "narration": "Ánh sáng thiêng liêng rọi sáng lòng dũng cảm và tinh thần nghĩa hiệp bất diệt.",
+                    "layout_type": "square",
+                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, cinematic eye-level shot. CHAR_001 receiving glowing celestial golden scroll floating into his hands, CHAR_002 beside him smiling warmly with relieved graceful look, floating sacred dust particles and nebula aura, vibrant rich colors, 8k, no text, no speech bubbles"
+                },
+                {
+                    "panel_index": 12,
+                    "scene_id": "S02",
+                    "location_id": "LOC_001",
+                    "location_name": "Đỉnh núi Vân Phong dưới trời sao",
+                    "time_of_day": "night",
+                    "weather": "infinite starry galaxy sky",
+                    "characters": ["CHAR_001", "CHAR_002"],
+                    "character_names": "Nguyễn Minh, Linh Nhi",
+                    "action": "Cả hai đứng kề vai trên đỉnh núi ngắm vạn dặm sơn hà dưới bầu trời ngàn sao rực rỡ",
+                    "emotion": "hào hùng, hy vọng, gắn kết",
+                    "camera_angle": "epic ultra-wide landscape shot",
+                    "previous_panel_summary": "Hai anh hùng thành công thu nhận bảo vật trở ra đỉnh núi thiêng.",
+                    "continuity_rules": "Cả hai nhân vật hướng ánh nhìn về thế gian, áo choàng và xiêm y tung bay trong gió đêm.",
+                    "speaker": "Nguyễn Minh",
+                    "dialogue": "Đi thôi Linh Nhi! Giang sơn ngoài kia đang chờ đón chúng ta!",
+                    "bubble_type": "shout",
+                    "narration": "Một trang sử mới đã mở ra. Bản anh hùng ca của họ sẽ còn lưu truyền mãi qua muôn đời.",
+                    "layout_type": "wide",
+                    "image_prompt": "masterpiece, vibrant full color anime manga illustration, epic ultra-wide landscape shot. CHAR_001 in navy robe and CHAR_002 in celestial white-pink dress standing side by side proudly on mountain cliff peak overlooking boundless glowing fantasy continent below magnificent starry galaxy nebula and crescent moon, breathtaking masterpiece, vibrant colors, 8k, no text, no speech bubbles"
                 }
             ]
         }
