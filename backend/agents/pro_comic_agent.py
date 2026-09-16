@@ -11,23 +11,45 @@ except (ImportError, ModuleNotFoundError):
 
 logger = logging.getLogger(__name__)
 
-MODEL = "qwen/qwen3.8-27b"
+PRIMARY_MODEL = "openai/gpt-oss-120b"
+FALLBACK_MODEL = "qwen/qwen3.8-27b"
 
-PRO_COMIC_SYSTEM_PROMPT = """Bạn là một Đạo diễn Truyện tranh & Nghệ sĩ Kịch bản Phân cảnh (Comic Director & Storyboard Artist) chuyên nghiệp cấp cao.
+PRO_COMIC_SYSTEM_PROMPT = """Bạn là Đạo diễn Truyện tranh & Chuyên gia Điều phối Prompt ComfyUI / AI Generation cấp cao (Comic Director, Storyboard Master & ComfyUI Prompt Orchestrator).
 
-NHIỆM VỤ CỦA BẠN:
-1. Phân tích cốt truyện tiếng Việt được cung cấp.
-2. Xây dựng BẢNG THIẾT KẾ NHÂN VẬT (Character Bible) chi tiết, nhất quán (ID, tên tiếng Việt, tuổi, ngoại hình chi tiết về tóc/mắt/khuôn mặt/vóc dáng, trang phục đặc trưng với màu sắc rõ ràng, tính cách, base_prompt bằng tiếng Anh).
-3. Xây dựng BẢNG THIẾT KẾ BỐI CẢNH (Location Bible) chi tiết (ID, tên bối cảnh tiếng Việt, kiến trúc, ánh sáng, bầu không khí, base_prompt bằng tiếng Anh).
-4. Phân rã câu chuyện thành từ 10 ĐẾN 16 KHUNG TRANH (Panels) mạch lạc, có sự phát triển liên tục (Story Progression).
-5. Đảm bảo tính LIÊN TỤC VÀ ĐỒNG NHẤT (Continuity):
-   - Nhân vật xuất hiện trong các khung tranh phải giữ nguyên trang phục, màu tóc, đặc điểm nhận diện.
-   - Bối cảnh phải duy trì ánh sáng, thời gian và không gian hợp lý.
-   - Ghi rõ previous_panel_summary và continuity_rules giữa các khung tranh liên tiếp.
-6. Mỗi khung tranh PHẢI CÓ LỜI THOẠI RIÊNG (dialogue) hoặc LỜI DẪN TRUYỆN (narration) bằng tiếng Việt chuẩn ngữ pháp, cảm xúc tự nhiên, đúng người nói (speaker).
-7. image_prompt: PHẢI VIẾT BẰNG TIẾNG ANH, mô tả phong cách FULL COLOR ANIME / WEBTOON, TUYỆT ĐỐI KHÔNG chứa chữ/text hay bong bóng thoại trong ảnh (speech bubbles và text sẽ do hệ thống frontend render bằng HTML/CSS đè lên tranh).
+NHIỆM VỤ TỐI THƯỢNG:
+Chuyển thể cốt truyện tiếng Việt thành kịch bản phân cảnh 10 ĐẾN 16 KHUNG TRANH (Panels) hoàn chỉnh, liền mạch 100%, bám sát diễn biến câu chuyện, đồng thời điều phối prompt chuyên biệt cho mô hình ComfyUI / Stable Diffusion Anime Webtoon để tranh sinh ra chuẩn xác từng chi tiết, không bị đứt đoạn, nhân vật nhất quán và lời thoại ăn khớp nhịp nhàng.
 
-OUTPUT FORMAT (STRICT JSON ONLY, không có markdown code blocks ```json, không có text dẫn dụ trước hoặc sau):
+NGUYÊN TẮC BẮT BUỘC ĐẠO DIỄN:
+1. PHÂN CẢNH 3 HỒI MẠCH LẠC (STORY PROGRESSION):
+   - Hồi 1 (Khởi nguồn & Gặp gỡ - Khung 1 đến 3/4): Đại cảnh thiết lập bối cảnh, giới thiệu mục tiêu của nhân vật chính, biến cố kích hoạt, cuộc hội ngộ hoặc phát hiện đầu tiên.
+   - Hồi 2 (Thử thách & Cao trào xung đột - Khung 4/5 đến 8/10): Đối mặt cạm bẫy, kẻ thù thức tỉnh, cận cảnh giao tranh, nhân vật thi triển chiêu thức võ công/phép thuật, biểu cảm căng thẳng dồn dập.
+   - Hồi 3 (Hóa giải & Vươn tới tương lai - Khung 9/11 đến 12/16): Đòn đánh quyết định hoặc sự hòa giải phong ấn, thu nhận bí kíp/bảo vật, niềm vui chiến thắng, đại cảnh kết màn hướng về giang sơn vạn dặm.
+
+2. BẢNG THIẾT KẾ NHÂN VẬT BẤT BIẾN (CHARACTER BIBLE):
+   - Mỗi nhân vật có ID riêng (CHAR_001, CHAR_002), tên tiếng Việt, tuổi, tính cách.
+   - Ngoại hình chi tiết (tóc, mắt, khuôn mặt, vóc dáng, vết sẹo/đặc điểm nhận dạng).
+   - Trang phục đặc trưng cố định (màu sắc chiến bào, thắt lưng, găng tay, ngọc bội, vũ khí).
+   - comfy_tags: Tập hợp từ khóa tiếng Anh đặc tả nhân vật dạng Booru/Danbooru + Natural prompt cho ComfyUI (VD: `CHAR_001, 1boy, athletic lean build, short spiky black hair, sharp dark blue eyes, small scar on left cheek, dark navy blue martial arts combat robe, silver dragon embroidery, black leather bracers, holding glowing silver sword`).
+
+3. BẢNG THIẾT KẾ BỐI CẢNH (LOCATION BIBLE):
+   - ID bối cảnh (LOC_001, LOC_002), tên tiếng Việt, kiến trúc, ánh sáng, bầu không khí.
+   - comfy_tags: Từ khóa tiếng Anh mô tả bối cảnh cho ComfyUI (VD: `LOC_001, ancient mountain cliff summit above sea of clouds, floating ancient stone ruins, radiant golden sunrise rays breaking through purple morning mist, ethereal fantasy world, vibrant colors`).
+
+4. ĐỒNG NHẤT TUYỆT ĐỐI GIỮA CÁC KHUNG TRANH (CONTINUITY):
+   - Mỗi khung tranh PHẢI ghi rõ `previous_panel_summary` (tóm tắt logic kết nối từ khung trước) và `continuity_rules` (kiểm tra trang phục, vũ khí, vị trí nhân vật không bị lệch).
+
+5. LỜI THOẠI & DẪN TRUYỆN SẮC SẢO:
+   - `speaker`: Người nói (hoặc "Người dẫn truyện").
+   - `dialogue`: Lời thoại tiếng Việt giàu cảm xúc, tự nhiên, thể hiện rõ thần thái nhân vật.
+   - `bubble_type`: "speech" (nói) | "shout" (hét/ra chiêu) | "thought" (suy nghĩ) | "whisper" (thì thầm) | "narration" (lời dẫn) | "none".
+   - `narration`: Lời dẫn truyện tiếng Việt tăng chiều sâu văn học.
+
+6. ĐIỀU PHỐI PROMPT COMFYUI CHUYÊN SÂU (COMFYUI PROMPT ORCHESTRATION):
+   - `comfy_prompt`: Prompt tiếng Anh được cấu trúc chuẩn mực cho ComfyUI:
+     `masterpiece, best quality, vibrant full color anime webtoon art, [camera angle], [character comfy_tags], [specific physical action & facial expression], [location comfy_tags & lighting], dynamic atmospheric lighting, 8k digital illustration, highly detailed, no text, no watermark, no speech bubbles`
+   - TUYỆT ĐỐI KHÔNG chứa chữ (text, letters), bong bóng thoại, hay chia đôi khung ảnh (split screen). Frontend sẽ tự động vẽ bong bóng thoại HTML/CSS đè lên tranh!
+
+OUTPUT FORMAT (STRICT JSON ONLY, không bọc ```json, không thêm chữ dẫn giải trước hoặc sau):
 {
   "character_bible": [
     {
@@ -35,10 +57,10 @@ OUTPUT FORMAT (STRICT JSON ONLY, không có markdown code blocks ```json, không
       "name": "Nguyễn Minh",
       "gender": "male",
       "age": "20",
-      "appearance": "handsome young man, short spiky jet-black hair, determined dark blue eyes, athletic lean muscular build, small scar on left cheek",
-      "costume": "dark navy blue martial arts combat robe with silver dragon embroidery, silver clasps, high collar, black leather belt, fingerless gloves",
+      "appearance": "handsome young man, short spiky jet-black hair, sharp deep blue eyes, athletic build, scar on left cheek",
+      "costume": "dark navy martial arts combat robe with silver dragon embroidery, black leather belt, fingerless bracers",
       "personality": "kiên định, dũng cảm, trọng nghĩa khí",
-      "base_prompt": "CHAR_001, handsome young hero, short spiky jet-black hair, sharp dark blue eyes, scar on left cheek, wearing dark navy blue martial arts robe with silver dragon trims, black leather bracers, vibrant full color anime webtoon art"
+      "comfy_tags": "CHAR_001, 1boy, handsome young hero, short spiky jet-black hair, sharp deep blue eyes, small scar on left cheek, dark navy martial arts robe with silver dragon embroidery, athletic build, vibrant full color anime webtoon art"
     }
   ],
   "location_bible": [
@@ -48,10 +70,11 @@ OUTPUT FORMAT (STRICT JSON ONLY, không có markdown code blocks ```json, không
       "architecture": "ancient celestial mountain peak with floating stone monoliths",
       "lighting": "golden dawn sunlight breaking through purple misty clouds",
       "atmosphere": "mystic, epic, breathtaking, ethereal atmosphere",
-      "base_prompt": "LOC_001, ancient mountain cliff summit above sea of clouds, floating ancient stone ruins, radiant golden sunrise rays breaking through purple morning mist, ethereal fantasy world, vibrant colors"
+      "comfy_tags": "LOC_001, ancient mountain cliff summit above sea of clouds, floating ancient stone ruins, radiant golden sunrise rays breaking through purple morning mist, ethereal fantasy world, vibrant colors"
     }
   ],
   "story_setting": "Thế giới huyền huyễn tu tiên nơi đan xen giữa bí ẩn thượng cổ và chí khí anh hùng.",
+  "negative_prompt": "text, watermark, speech bubbles, letters, comic panel border, split screen, monochrome, grayscale, sketch, lowres, bad anatomy, bad hands, missing fingers, extra fingers, deformed limbs, blurry, mutation, duplicate, ugly, cropped, worst quality, out of frame",
   "panels": [
     {
       "panel_index": 1,
@@ -65,23 +88,16 @@ OUTPUT FORMAT (STRICT JSON ONLY, không có markdown code blocks ```json, không
       "action": "Nguyễn Minh đứng trên mỏm đá ngắm nhìn ngôi đền bay thượng cổ lấp lánh giữa biển mây",
       "emotion": "kinh ngạc, xúc động",
       "camera_angle": "cinematic wide angle low shot",
-      "previous_panel_summary": "Bắt đầu câu chuyện, nhân vật vừa đặt chân lên đỉnh núi thiêng.",
       "continuity_rules": "Nguyễn Minh mặc chiến bào xanh đen thêu rồng bạc, tóc đen ngắn bay nhẹ trong gió sớm.",
       "speaker": "Nguyễn Minh",
       "dialogue": "Cuối cùng ta cũng đã tìm thấy Đền Thượng Cổ...",
       "bubble_type": "speech",
       "narration": "Sau ba ngày ba đêm vượt biển mây hiểm trở, cánh cửa định mệnh đã hiện ra trước mắt.",
       "layout_type": "wide",
-      "image_prompt": "Masterpiece full color anime webtoon illustration, cinematic wide angle low shot. CHAR_001 handsome young hero, short spiky jet-black hair, sharp dark blue eyes, dark navy martial arts robe with silver trims, standing heroically on jagged mountain cliff edge at dawn looking toward massive floating ancient celestial temple in golden clouds, breathtaking sunrise lighting, vibrant colors, highly detailed digital art, 8k, no text, no watermark"
+      "comfy_prompt": "masterpiece, best quality, vibrant full color anime webtoon art, cinematic wide angle low shot, CHAR_001 handsome young hero, short spiky jet-black hair, sharp dark blue eyes, dark navy martial arts robe with silver trims, standing heroically on jagged mountain cliff edge at dawn looking toward massive floating ancient celestial temple in golden clouds, breathtaking sunrise lighting, vibrant colors, 8k digital illustration, no text, no speech bubbles"
     }
   ]
 }
-
-QUY TẮC BẮT BUỘC:
-- Số lượng panels: BẮT BUỘC TỪ 10 ĐẾN 16 KHUNG TRANH (minimum 10, target 12-16 khung tranh diễn biến đầy đủ mạch lạc).
-- bubble_type: "speech" (nói thông thường) | "shout" (hét to, ra chiêu) | "thought" (suy nghĩ) | "whisper" (thì thầm) | "narration" (lời dẫn) | "none" (không có thoại).
-- layout_type: "wide" (khung phong cảnh, đại cảnh) | "tall" (khung dọc, toàn thân, nhân vật đứng) | "square" (trung cảnh, cận cảnh).
-- image_prompt: Đầy đủ màu sắc (FULL COLOR), phong cách anime/webtoon, TUYỆT ĐỐI KHÔNG chứa bong bóng thoại hay chữ trong ảnh (no text, no speech bubbles).
 """
 
 class ProComicAgent:
@@ -89,7 +105,12 @@ class ProComicAgent:
         api_key = os.environ.get("GROQ_API_KEY_COMIC") or os.environ.get("GROQ_API_KEY")
         if not api_key:
             raise ValueError("Missing GROQ_API_KEY")
-        self.llm = GroqClient(model_name=MODEL, api_key=api_key)
+        self.api_key = api_key
+        self.llm = GroqClient(model_name=PRIMARY_MODEL, api_key=api_key)
+        try:
+            self.fallback_llm = GroqClient(model_name=FALLBACK_MODEL, api_key=api_key)
+        except Exception:
+            self.fallback_llm = self.llm
 
     def generate(self, story_text: str, genre: str = "", style: str = "") -> Dict[str, Any]:
         trimmed = (story_text or "").strip()[:6000]
@@ -99,29 +120,70 @@ class ProComicAgent:
         genre_hint = f"\nThể loại: {genre}" if genre else ""
         style_hint = f"\nPhong cách hội họa: {style}" if style else ""
         user_prompt = (
-            f"Hãy chuyển thể câu chuyện sau thành kịch bản truyện tranh hoàn chỉnh từ 10-16 khung tranh (tối thiểu 10 khung, khuyến khích 12-16 khung), "
-            f"kèm Character Bible, Location Bible và continuity rules:{genre_hint}{style_hint}\n\n{trimmed}"
+            f"Hãy phân tích và chuyển thể câu chuyện sau thành kịch bản truyện tranh 10-16 khung tranh (khuyến nghị 12-16 khung), "
+            f"điều phối Character Bible, Location Bible và ComfyUI prompt chi tiết cho từng khung tranh:{genre_hint}{style_hint}\n\n{trimmed}"
         )
 
-        try:
-            raw = self.llm.chat(
-                messages=[
-                    {"role": "system", "content": PRO_COMIC_SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.6,
-                max_tokens=4000
-            )
+        messages = [
+            {"role": "system", "content": PRO_COMIC_SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt}
+        ]
 
-            json_match = re.search(r'\{[\s\S]*\}', raw)
-            if json_match:
-                data = json.loads(json_match.group(0))
-                if isinstance(data.get("panels"), list) and len(data["panels"]) >= 4:
+        # 1. Try Primary ChatGPT-Class Model (openai/gpt-oss-120b) with json_object mode
+        for client in (self.llm, self.fallback_llm):
+            try:
+                raw = client.chat(
+                    messages=messages,
+                    temperature=0.5,
+                    max_tokens=6000,
+                    response_format={"type": "json_object"}
+                )
+                data = self._parse_or_repair_json(raw)
+                if data and isinstance(data.get("panels"), list) and len(data["panels"]) >= 4:
                     return self._process_script_data(data, style)
-        except Exception as e:
-            logger.warning("[ProComicAgent] LLM generation failed or returned invalid JSON: %s. Using structured fallback.", e)
+            except Exception as e:
+                logger.warning(f"[ProComicAgent] LLM {getattr(client, 'model', 'unknown')} failed: {e}")
 
+        logger.warning("[ProComicAgent] All LLMs failed or returned invalid JSON. Using structured 12-panel fallback.")
         return self._get_fallback()
+
+    def _parse_or_repair_json(self, raw: str) -> Optional[Dict[str, Any]]:
+        """Parses JSON or repairs truncated JSON response from LLM."""
+        if not raw:
+            return None
+        # 1. Direct parse
+        json_match = re.search(r'\{[\s\S]*\}', raw)
+        if json_match:
+            try:
+                return json.loads(json_match.group(0))
+            except Exception:
+                pass
+
+        # 2. Clean trailing commas
+        cleaned = re.sub(r',\s*([\]\}])', r'\1', raw)
+        m = re.search(r'\{[\s\S]*\}', cleaned)
+        if m:
+            try:
+                return json.loads(m.group(0))
+            except Exception:
+                pass
+
+        # 3. Truncation salvage: close open panel brackets
+        lines = raw.splitlines()
+        for cut_idx in range(len(lines), max(0, len(lines) - 40), -1):
+            candidate = "\n".join(lines[:cut_idx]).strip().rstrip(",")
+            for closing in ("]\n}", "\n}", "\"]\n}", "}\n]\n}"):
+                try:
+                    candidate_fixed = re.sub(r',\s*([\]\}])', r'\1', candidate + closing)
+                    m = re.search(r'\{[\s\S]*\}', candidate_fixed)
+                    if m:
+                        data = json.loads(m.group(0))
+                        if isinstance(data.get("panels"), list) and len(data["panels"]) >= 4:
+                            return data
+                except Exception:
+                    continue
+
+        return None
 
     def _process_script_data(self, data: Dict[str, Any], style: str = "") -> Dict[str, Any]:
         """Validates, caps panel count to 10-16, and enriches image prompts with Bibles."""
@@ -135,13 +197,15 @@ class ProComicAgent:
         char_map = {c.get("char_id", f"CHAR_{i+1:03d}"): c for i, c in enumerate(char_bible)}
         loc_map = {l.get("loc_id", f"LOC_{i+1:03d}"): l for i, l in enumerate(loc_bible)}
 
+        root_negative = data.get("negative_prompt", "")
+
         panels = data.get("panels", [])
         if len(panels) > 16:
             panels = panels[:16]
 
         validated_panels = []
         for i, p in enumerate(panels):
-            enriched = self._enrich_panel(p, i + 1, char_map, loc_map, style)
+            enriched = self._enrich_panel(p, i + 1, char_map, loc_map, style, root_negative=root_negative)
             validated_panels.append(enriched)
 
         data["character_bible"] = char_bible
@@ -155,9 +219,10 @@ class ProComicAgent:
         index: int,
         char_map: Dict[str, Any],
         loc_map: Dict[str, Any],
-        style: str = ""
+        style: str = "",
+        root_negative: str = ""
     ) -> Dict[str, Any]:
-        """Ensures panel has all required fields and assembles a consistent, full-color prompt."""
+        """Ensures panel has all required fields and assembles a consistent, full-color ComfyUI prompt."""
         panel_index = index
         layout = panel.get("layout_type") or "square"
         if layout not in ("wide", "tall", "square"):
@@ -176,22 +241,24 @@ class ProComicAgent:
         for cid in p_chars:
             if cid in char_map:
                 c_info = char_map[cid]
-                char_prompts.append(c_info.get("base_prompt") or f"{c_info.get('name')}, {c_info.get('appearance')}, {c_info.get('costume')}")
+                char_prompts.append(
+                    c_info.get("comfy_tags") or c_info.get("base_prompt") or f"{c_info.get('name')}, {c_info.get('appearance')}, {c_info.get('costume')}"
+                )
 
         # Location references
         loc_id = panel.get("location_id", "")
         loc_prompt = ""
         if loc_id in loc_map:
             l_info = loc_map[loc_id]
-            loc_prompt = l_info.get("base_prompt") or f"{l_info.get('architecture')}, {l_info.get('lighting')}"
+            loc_prompt = l_info.get("comfy_tags") or l_info.get("base_prompt") or f"{l_info.get('architecture')}, {l_info.get('lighting')}"
 
-        # Build comprehensive English prompt for Stability AI
-        raw_prompt = panel.get("image_prompt", "").strip()
+        # Orchestrated prompt handling: check comfy_prompt first, then image_prompt
+        raw_prompt = (panel.get("comfy_prompt") or panel.get("image_prompt") or "").strip()
         camera = panel.get("camera_angle", "cinematic medium shot")
         action_en = panel.get("action", "")
 
         # Base style tokens enforcing full-color webtoon/anime illustration without text
-        style_tokens = "masterpiece, vibrant full color anime manga illustration, detailed webtoon art, dynamic lighting, 8k digital painting, no text, no watermark, no speech bubbles"
+        style_tokens = "masterpiece, best quality, vibrant full color anime manga illustration, detailed webtoon art, dynamic lighting, 8k digital painting, clean linework, no text, no watermark, no speech bubbles"
         
         assembled_parts = [style_tokens, camera]
         if char_prompts:
@@ -204,6 +271,15 @@ class ProComicAgent:
             assembled_parts.append(f"background: {loc_prompt}")
 
         final_prompt = ", ".join([p.strip().rstrip(",") for p in assembled_parts if p.strip()])
+
+        default_negative = (
+            root_negative.strip() if root_negative and root_negative.strip() else (
+                "text, watermark, speech bubbles, letters, comic panel border, split screen, monochrome, "
+                "grayscale, sketch, lowres, bad anatomy, bad hands, missing fingers, extra fingers, "
+                "deformed limbs, blurry, mutation, duplicate, ugly, cropped, worst quality, out of frame"
+            )
+        )
+        negative_prompt = (panel.get("comfy_negative_prompt") or panel.get("negative_prompt") or default_negative).strip()
 
         return {
             "panel_index": panel_index,
@@ -224,7 +300,10 @@ class ProComicAgent:
             "bubble_type": bubble_type,
             "narration": panel.get("narration", ""),
             "layout_type": layout,
-            "image_prompt": final_prompt
+            "image_prompt": final_prompt,
+            "comfy_prompt": final_prompt,
+            "comfy_negative_prompt": negative_prompt,
+            "negative_prompt": negative_prompt
         }
 
     def _get_fallback(self) -> Dict[str, Any]:

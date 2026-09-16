@@ -115,13 +115,30 @@ def get_curated_panel(prompt: str, seed: int = 42) -> str:
     idx = abs(int(seed)) % len(FALLBACK_POOL)
     return FALLBACK_POOL[idx]
 
-def generate_comic_panel_image(prompt: str, seed: int = 42, layout_type: str = "square", width: int = 640, height: int = 896, steps: int = 14) -> str:
+def generate_comic_panel_image(
+    prompt: str,
+    seed: int = 42,
+    layout_type: str = "square",
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+    steps: int = 15,
+    negative_prompt: Optional[str] = None
+) -> str:
     """
     Generate comic panel image.
-    1. If local ComfyUI is running, executes via local GPU workflow.
+    1. If local ComfyUI is running, executes via local GPU workflow with orchestrated prompt.
     2. Otherwise, automatically routes to Primary Cloud Provider: Stability AI.
     3. Fallback to curated asset only if all generative providers fail.
     """
+    # Dynamic aspect ratio sizing for ComfyUI Latent Image
+    if not width or not height:
+        if layout_type == "wide":
+            width, height = 832, 480
+        elif layout_type == "tall":
+            width, height = 480, 832
+        else:
+            width, height = 640, 640
+
     ckpt = get_first_checkpoint()
     if not ckpt:
         # Route to Primary Cloud Provider: Stability AI
@@ -132,7 +149,12 @@ def generate_comic_panel_image(prompt: str, seed: int = 42, layout_type: str = "
                 from backend.services.image_provider import ImageProviderFactory
             stability = ImageProviderFactory.get_primary_provider()
             if stability.is_available():
-                resp = stability.generate_image(prompt, aspect_ratio=layout_type, seed=seed)
+                resp = stability.generate_image(
+                    prompt,
+                    negative_prompt=negative_prompt or "",
+                    aspect_ratio=layout_type,
+                    seed=seed
+                )
                 if resp.get("success") and resp.get("image_bytes"):
                     import uuid
                     backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -149,9 +171,14 @@ def generate_comic_panel_image(prompt: str, seed: int = 42, layout_type: str = "
         print("[NarrAI ImageGen] Using curated fallback panel")
         return get_curated_panel(prompt, seed=seed)
 
-    clean_prompt = (prompt or "comic manga scene").strip()
-    positive_prompt = f"{clean_prompt}, anime manga comic, sharp lineart, dramatic lighting, highly detailed illustration, masterpiece, best quality"
-    negative_prompt = "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, jpeg artifacts, signature, watermark, username, blurry"
+    clean_prompt = (prompt or "vibrant full color anime manga illustration").strip()
+    if "masterpiece" not in clean_prompt.lower():
+        positive_prompt = f"masterpiece, best quality, vibrant full color anime webtoon illustration, {clean_prompt}"
+    else:
+        positive_prompt = clean_prompt
+
+    default_neg = "text, watermark, speech bubbles, letters, comic panel border, monochrome, grayscale, sketch, lowres, bad anatomy, bad hands, missing fingers, extra fingers, deformed limbs, blurry, mutation, duplicate, ugly, cropped, worst quality, out of frame"
+    active_negative = (negative_prompt.strip() if negative_prompt and negative_prompt.strip() else default_neg)
 
     # Highly optimized ComfyUI workflow for RTX 2050 (14-17s per panel)
     workflow = {
@@ -184,7 +211,7 @@ def generate_comic_panel_image(prompt: str, seed: int = 42, layout_type: str = "
         },
         "7": {
             "class_type": "CLIPTextEncode",
-            "inputs": { "text": negative_prompt, "clip": ["4", 1] }
+            "inputs": { "text": active_negative, "clip": ["4", 1] }
         },
         "8": {
             "class_type": "VAEDecode",

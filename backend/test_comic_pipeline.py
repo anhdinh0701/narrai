@@ -37,6 +37,15 @@ assert "dialogue" in p1 and len(p1["dialogue"]) > 0, "Panel 1 should have dialog
 assert "image_prompt" in p1 and "full color" in p1["image_prompt"].lower(), "Panel 1 prompt should be full color"
 print(f"ProComicAgent fallback verified: {len(fallback['panels'])} panels, Character Bible & Location Bible consistent.")
 
+print("\n=== 2b. Testing Live ProComicAgent with Groq (openai/gpt-oss-120b) ===")
+test_story = "Nguyễn Minh cầm trường kiếm bước vào cấm địa cổ Vân Phong, vượt qua trận pháp phong vân tìm kiếm bí kíp cứu sư môn."
+result = agent.generate(test_story)
+assert "character_bible" in result and len(result["character_bible"]) > 0, "Live result must have character_bible"
+assert "panels" in result and len(result["panels"]) >= 6, f"Live result should have >=6 panels, got {len(result.get('panels', []))}"
+assert "dialogue" in result["panels"][0], "Panel 0 must have dialogue"
+assert "image_prompt" in result["panels"][0], "Panel 0 must have image_prompt"
+print(f"Live Groq generation succeeded: {len(result['panels'])} panels orchestrated with Character & Location Bibles!")
+
 print("\n=== 3. Testing Image Provider Factory ===")
 primary = ImageProviderFactory.get_primary_provider()
 assert isinstance(primary, StabilityImageProvider), "Primary provider must be StabilityImageProvider"

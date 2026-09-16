@@ -665,6 +665,7 @@ def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: s
             p_idx = p_data.get("panel_index", idx + 1)
             raw_s = str(p_data.get("scene_id", "1")).upper().replace("S", "").strip()
             scene_val = int(raw_s) if raw_s.isdigit() else 1
+            neg_p = p_data.get("comfy_negative_prompt") or p_data.get("negative_prompt", "")
             p_rec = ComicPanel(
                 comic_id=comic.id,
                 panel_index=p_idx,
@@ -674,7 +675,8 @@ def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: s
                 action_description=p_data.get("action", ""),
                 emotion=p_data.get("emotion", ""),
                 camera_angle=p_data.get("camera_angle", ""),
-                image_prompt=p_data.get("image_prompt", ""),
+                image_prompt=p_data.get("comfy_prompt") or p_data.get("image_prompt", ""),
+                negative_prompt=neg_p,
                 dialogue_text=p_data.get("dialogue", ""),
                 speaker_name=p_data.get("speaker", ""),
                 bubble_type=p_data.get("bubble_type", "speech"),
@@ -704,6 +706,7 @@ def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: s
             seed_val = (comic.id * 100) + panel.panel_index
             result = stability_provider.generate_image(
                 prompt=panel.image_prompt,
+                negative_prompt=panel.negative_prompt or "",
                 aspect_ratio=panel.layout_type,
                 seed=seed_val
             )
@@ -853,6 +856,8 @@ def get_comic_job_status(job_id: str, db: Session = Depends(get_db)):
                 "emotion": p.emotion,
                 "camera_angle": p.camera_angle,
                 "image_prompt": p.image_prompt,
+                "comfy_prompt": p.image_prompt,
+                "negative_prompt": p.negative_prompt or "",
                 "dialogue_text": p.dialogue_text,
                 "dialogue": p.dialogue_text,
                 "speaker_name": p.speaker_name,
@@ -911,6 +916,7 @@ def retry_comic_panel(panel_id: int, request: RetryPanelRequest = RetryPanelRequ
     new_seed = random.randint(1000, 99999999)
     result = stability_provider.generate_image(
         prompt=effective_prompt,
+        negative_prompt=panel.negative_prompt or "",
         aspect_ratio=panel.layout_type or "square",
         seed=new_seed
     )
@@ -970,7 +976,11 @@ def enhance_panel_with_comfyui(panel_id: int, db: Session = Depends(get_db)):
             "message": "ComfyUI hiện đang tắt trên máy tính của bạn. Hãy khởi động ComfyUI (cổng 8188) để sử dụng tính năng này."
         }
 
-    res = comfy_provider.generate_image(prompt=panel.image_prompt or "comic manga scene")
+    res = comfy_provider.generate_image(
+        prompt=panel.image_prompt or "comic manga scene",
+        negative_prompt=panel.negative_prompt or "",
+        aspect_ratio=panel.layout_type or "square"
+    )
     if res.get("success") and res.get("image_bytes"):
         backend_dir = os.path.dirname(os.path.abspath(__file__))
         proc_dir = os.path.join(backend_dir, "outputs", "processed")
@@ -1190,7 +1200,8 @@ def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), cu
         auto_mode = req_mode
 
     for idx, item in enumerate(panels_plan):
-        p_img_prompt = item.get("image_prompt") or "manga style panel, high quality"
+        p_img_prompt = item.get("comfy_prompt") or item.get("image_prompt") or "manga style panel, high quality"
+        p_neg_prompt = item.get("comfy_negative_prompt") or item.get("negative_prompt") or ""
         p_dialogue = item.get("dialogue") or item.get("dialogue_text") or ""
         p_layout = item.get("layout_type") or "square"
         p_idx = item.get("panel_index", idx + 1)
@@ -1198,7 +1209,12 @@ def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), cu
         scene_val = int(raw_s) if raw_s.isdigit() else 1
 
         # Stage 1: ComfyUI or Stability AI image generation
-        raw_image = generate_comic_panel_image(p_img_prompt, seed=comic.id + p_idx, layout_type=p_layout)
+        raw_image = generate_comic_panel_image(
+            p_img_prompt,
+            seed=comic.id + p_idx,
+            layout_type=p_layout,
+            negative_prompt=p_neg_prompt
+        )
 
         # Stage 2: Auto enhancement (Stability AI)
         panel_enh_mode = auto_mode if idx < 2 else "none"
@@ -1222,6 +1238,7 @@ def create_comic_pro(request: ProComicRequest, db: Session = Depends(get_db), cu
             emotion=item.get("emotion") or "",
             camera_angle=item.get("camera_angle") or "",
             image_prompt=p_img_prompt,
+            negative_prompt=p_neg_prompt,
             dialogue_text=p_dialogue,
             speaker_name=item.get("speaker") or "",
             bubble_type=item.get("bubble_type", "speech" if p_dialogue else "none"),

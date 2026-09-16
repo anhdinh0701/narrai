@@ -85,6 +85,7 @@ class ComicPanel(Base):
     emotion = Column(Unicode(100), nullable=True)
     camera_angle = Column(Unicode(100), nullable=True)
     image_prompt = Column(UnicodeText)
+    negative_prompt = Column(UnicodeText, nullable=True)
     dialogue_text = Column(UnicodeText, nullable=True)
     speaker_name = Column(Unicode(100), nullable=True)
     bubble_type = Column(String(50), default='speech')
@@ -177,6 +178,7 @@ def ensure_schema_compatibility():
                     ('action_description', text_type),
                     ('emotion', 'NVARCHAR(100)' if is_mssql else 'VARCHAR(100)'),
                     ('camera_angle', 'NVARCHAR(100)' if is_mssql else 'VARCHAR(100)'),
+                    ('negative_prompt', text_type),
                     ('speaker_name', 'NVARCHAR(100)' if is_mssql else 'VARCHAR(100)'),
                     ('bubble_type', "VARCHAR(50) DEFAULT 'speech'"),
                     ('narration_text', text_type),

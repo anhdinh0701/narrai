@@ -254,18 +254,38 @@ class ComfyUIProvider(ImageGenerationProvider):
 
         try:
             from services.image_gen import generate_comic_panel_image
-            result = generate_comic_panel_image(prompt, seed=seed or 42)
-            if result and isinstance(result, str) and result.startswith("data:image/"):
-                parts = result.split(",", 1)
-                import base64
-                img_bytes = base64.b64decode(parts[1])
-                return {
-                    "success": True,
-                    "image_bytes": img_bytes,
-                    "error_code": None,
-                    "error_message": None,
-                    "provider": "comfyui"
-                }
+            layout = "wide" if aspect_ratio in ("16:9", "wide") else ("tall" if aspect_ratio in ("2:3", "tall") else "square")
+            result = generate_comic_panel_image(
+                prompt=prompt,
+                seed=seed or 42,
+                layout_type=layout,
+                negative_prompt=negative_prompt
+            )
+            if result and isinstance(result, str):
+                if result.startswith("data:image/"):
+                    parts = result.split(",", 1)
+                    import base64
+                    img_bytes = base64.b64decode(parts[1])
+                    return {
+                        "success": True,
+                        "image_bytes": img_bytes,
+                        "error_code": None,
+                        "error_message": None,
+                        "provider": "comfyui"
+                    }
+                elif result.startswith("/api/images/"):
+                    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    rel = result.replace("/api/images/", "").strip("/")
+                    local_fp = os.path.join(backend_dir, "outputs", rel)
+                    if os.path.exists(local_fp):
+                        with open(local_fp, "rb") as f:
+                            return {
+                                "success": True,
+                                "image_bytes": f.read(),
+                                "error_code": None,
+                                "error_message": None,
+                                "provider": "comfyui"
+                            }
         except Exception as e:
             logger.error("[ComfyUIProvider] Local execution error: %s", e)
 
