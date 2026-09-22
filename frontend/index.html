@@ -305,34 +305,53 @@
                     </div>
                 </div>
 
+                <!-- Batch Generation Tracker Bar -->
+                <div class="comic-batch-tracker" id="comicBatchTracker" style="display: none;">
+                    <div class="batch-tracker-header">
+                        <div class="batch-tracker-left">
+                            <span class="batch-tracker-title">🎨 Tiến độ chuyển thể truyện tranh</span>
+                            <span class="batch-tracker-badge" id="batchBadge">Đợt 1 / 1</span>
+                        </div>
+                        <div class="batch-tracker-right">
+                            <span class="batch-progress-text" id="batchProgressText">0 / 0 khung tranh</span>
+                        </div>
+                    </div>
+                    <div class="batch-progress-bar-wrap">
+                        <div class="batch-progress-bar-fill" id="batchProgressBar" style="width: 0%;"></div>
+                    </div>
+                    <div class="batch-scenes-pills" id="batchScenesPills">
+                        <!-- Populated dynamically with scene status pills -->
+                    </div>
+                </div>
+
                 <div id="comicCanvas" class="comic-canvas">
                     <div class="ai-loading" id="comicLoading" style="display:none;">
                         <div class="pro-progress-container" id="proProgressUI">
-                            <div class="pro-progress-title">NarrAI đang tao truyen tranh...</div>
+                            <div class="pro-progress-title">NarrAI đang tạo truyện tranh...</div>
                             <div class="pro-progress-steps" id="proProgressSteps">
                                 <div class="pro-step pending" id="pstep-analyze">
                                     <span class="pro-step-icon"></span>
-                                    <span>Phan tich y tuong</span>
+                                    <span>Phân tích ý tưởng</span>
                                 </div>
                                 <div class="pro-step pending" id="pstep-story">
                                     <span class="pro-step-icon"></span>
-                                    <span>Xay dung co truyen</span>
+                                    <span>Xây dựng cốt truyện</span>
                                 </div>
                                 <div class="pro-step pending" id="pstep-chars">
                                     <span class="pro-step-icon"></span>
-                                    <span>Thiet ke nhan vat</span>
+                                    <span>Thiết kế nhân vật</span>
                                 </div>
                                 <div class="pro-step pending" id="pstep-panels">
                                     <span class="pro-step-icon"></span>
-                                    <span>Phan canh truyen tranh</span>
+                                    <span>Phân cảnh truyện tranh</span>
                                 </div>
                                 <div class="pro-step pending" id="pstep-art">
                                     <span class="pro-step-icon"></span>
-                                    <span>Tao tranh</span>
+                                    <span>Tạo tranh</span>
                                 </div>
                                 <div class="pro-step pending" id="pstep-finish">
                                     <span class="pro-step-icon"></span>
-                                    <span>Hoan thien comic</span>
+                                    <span>Hoàn thiện comic</span>
                                 </div>
                             </div>
                             <div class="pro-progress-bar-wrap">
@@ -341,7 +360,7 @@
                         </div>
                     </div>
                     <div id="comicGrid" class="comic-grid"></div>
-
+                    <div id="comicBatchActionBar" class="comic-batch-action-bar" style="display: none;"></div>
                 </div>
             </div>
         </main>

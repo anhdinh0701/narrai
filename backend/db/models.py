@@ -67,6 +67,7 @@ class Comic(Base):
     character_bible = Column(UnicodeText, nullable=True)
     location_bible = Column(UnicodeText, nullable=True)
     story_setting = Column(UnicodeText, nullable=True)
+    continuity_memory = Column(UnicodeText, nullable=True)
     status = Column(String(50), default='ready')
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -100,6 +101,8 @@ class ComicPanel(Base):
     generation_status = Column(String(50), default='pending')
     error_message = Column(UnicodeText, nullable=True)
     layout_type = Column(String(50), default='square')
+    batch_number = Column(Integer, default=1)
+    retry_count = Column(Integer, default=0)
     
     comic = relationship('Comic', back_populates='panels')
 
@@ -114,6 +117,9 @@ class ComicJob(Base):
     progress_percent = Column(Integer, default=0)
     total_panels = Column(Integer, default=0)
     completed_panels = Column(Integer, default=0)
+    current_batch = Column(Integer, default=1)
+    total_batches = Column(Integer, default=1)
+    batch_size = Column(Integer, default=8)
     error_message = Column(UnicodeText, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -144,6 +150,8 @@ Base.metadata.create_all(engine)
 # Auto-migrate missing columns for existing SQLite / relational tables
 def ensure_schema_compatibility():
     from sqlalchemy import inspect, text
+    import logging
+    _log = logging.getLogger(__name__)
     try:
         inspector = inspect(engine)
         existing_tables = inspector.get_table_names()
@@ -159,6 +167,7 @@ def ensure_schema_compatibility():
                     ('character_bible', text_type),
                     ('location_bible', text_type),
                     ('story_setting', text_type),
+                    ('continuity_memory', text_type),
                     ('status', "VARCHAR(50) DEFAULT 'ready'")
                 ]:
                     if col_name not in cols:
@@ -191,7 +200,9 @@ def ensure_schema_compatibility():
                     ('enhancement_status', 'VARCHAR(50)'),
                     ('generation_status', "VARCHAR(50) DEFAULT 'pending'"),
                     ('error_message', text_type),
-                    ('layout_type', "VARCHAR(50) DEFAULT 'square'")
+                    ('layout_type', "VARCHAR(50) DEFAULT 'square'"),
+                    ('batch_number', int_type),
+                    ('retry_count', int_type)
                 ]:
                     if col_name not in cols:
                         try:
@@ -199,7 +210,22 @@ def ensure_schema_compatibility():
                         except Exception:
                             pass
                 conn.commit()
+
+        if 'comic_jobs' in existing_tables:
+            cols = {c['name'] for c in inspector.get_columns('comic_jobs')}
+            with engine.connect() as conn:
+                for col_name, col_type in [
+                    ('current_batch', int_type),
+                    ('total_batches', int_type),
+                    ('batch_size', int_type)
+                ]:
+                    if col_name not in cols:
+                        try:
+                            conn.execute(text(f"ALTER TABLE comic_jobs {add_prefix} {col_name} {col_type}"))
+                        except Exception:
+                            pass
+                conn.commit()
     except Exception as e:
-        logger.warning(f"[DB Schema Init Warning] {repr(e)}")
+        _log.warning(f"[DB Schema Init Warning] {repr(e)}")
 
 ensure_schema_compatibility()

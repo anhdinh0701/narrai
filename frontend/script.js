@@ -2527,6 +2527,56 @@ async function adaptToComicDirect(text) {
     }
 }
 
+function updateBatchTrackerUI(job, panels) {
+    const tracker = document.getElementById('comicBatchTracker');
+    if (!tracker) return;
+    tracker.style.display = 'block';
+
+    const total = job.total_panels || panels.length;
+    const completed = job.completed_panels || panels.filter(p => p.final_image_url || p.image_url).length;
+    const currBatch = job.current_batch || 1;
+    const totalBatches = job.total_batches || Math.max(1, Math.ceil(total / 8));
+    const percent = job.progress_percent !== undefined ? job.progress_percent : (total > 0 ? Math.round((completed / total) * 100) : 0);
+
+    const badge = document.getElementById('batchBadge');
+    if (badge) badge.innerText = `Đợt ${currBatch} / ${totalBatches}`;
+
+    const progressText = document.getElementById('batchProgressText');
+    if (progressText) progressText.innerText = `Đã tạo: ${completed} / ${total} ảnh`;
+
+    const progressBar = document.getElementById('batchProgressBar');
+    if (progressBar) progressBar.style.width = `${percent}%`;
+
+    const pillsContainer = document.getElementById('batchScenesPills');
+    if (pillsContainer && panels.length > 0) {
+        pillsContainer.innerHTML = '';
+        panels.forEach((p, pIdx) => {
+            const pill = document.createElement('span');
+            const sceneNum = p.scene_id || (Math.floor(pIdx / 2) + 1);
+            const panelNum = p.panel_index || (pIdx + 1);
+
+            if (p.final_image_url || p.image_url) {
+                pill.className = 'scene-pill completed';
+                pill.innerHTML = `✓ Khung ${panelNum}`;
+                pill.title = `Khung ${panelNum} (Scene ${sceneNum}): Đã hoàn thành`;
+            } else if (p.generation_status === 'generating') {
+                pill.className = 'scene-pill generating';
+                pill.innerHTML = `🎨 Khung ${panelNum}`;
+                pill.title = `Khung ${panelNum} (Scene ${sceneNum}): Đang vẽ qua ComfyUI...`;
+            } else if (p.generation_status === 'failed') {
+                pill.className = 'scene-pill failed';
+                pill.innerHTML = `✗ Khung ${panelNum}`;
+                pill.title = `Khung ${panelNum} (Scene ${sceneNum}): Lỗi tạo ảnh (bấm thử lại)`;
+            } else {
+                pill.className = 'scene-pill pending';
+                pill.innerHTML = `⋯ Khung ${panelNum}`;
+                pill.title = `Khung ${panelNum} (Scene ${sceneNum}): Chờ vẽ đợt sau`;
+            }
+            pillsContainer.appendChild(pill);
+        });
+    }
+}
+
 async function pollComicJob(jobId) {
     const loader = document.getElementById('comicLoading');
     const grid = document.getElementById('comicGrid');
@@ -2550,6 +2600,8 @@ async function pollComicJob(jobId) {
 
             // 1. Live Progressive Rendering: Render panels as soon as storyboard data arrives
             if (panels.length > 0) {
+                updateBatchTrackerUI(job, panels);
+
                 if (!hasRenderedGrid || grid.children.length === 0) {
                     grid.innerHTML = '';
                     const acts = groupPanelsIntoStoryboardActs(panels);
@@ -2580,7 +2632,7 @@ async function pollComicJob(jobId) {
                                     skeleton.innerHTML = `
                                         <div style="padding:15px; text-align:center; color:#38bdf8; font-size:0.8rem; width:100%;">
                                             <div style="font-weight:700; margin-bottom:4px;">🎨 Đang vẽ khung ${p.panel_index || pIdx + 1}...</div>
-                                            <div style="font-size:0.7rem; color:#94a3b8;">ComfyUI đang xử lý</div>
+                                            <div style="font-size:0.7rem; color:#94a3b8;">ComfyUI đang xử lý hình ảnh</div>
                                         </div>
                                     `;
                                 }
@@ -2614,18 +2666,20 @@ async function pollComicJob(jobId) {
                 statusEl.innerText = `${job.current_step} (${job.progress_percent}%)`;
             }
 
-            // 3. Check completion or partial batch state
+            // 3. Check completion or partial batch state - STRICT STOP
             if (job.status === 'completed' || job.status === 'partial') {
                 proAdvanceProgress(5);
                 await new Promise(r => setTimeout(r, 200));
                 if (loader) loader.style.display = 'none';
                 proCompleteProgress();
 
+                updateBatchTrackerUI(job, panels);
                 renderComicBatchActionBar(jobId, job, panels);
                 return;
             } else if (job.status === 'failed') {
                 localStorage.removeItem('narrai_active_comic_job');
                 if (loader) loader.style.display = 'none';
+                updateBatchTrackerUI(job, panels);
                 renderComicBatchActionBar(jobId, job, panels);
                 if (job.error_message) {
                     alert(job.error_message);
@@ -2657,14 +2711,19 @@ function renderComicBatchActionBar(jobId, job, panels) {
     const total = job.total_panels || panels.length;
     const completed = job.completed_panels || panels.filter(p => p.final_image_url || p.image_url).length;
     const remaining = total - completed;
+    const nextCount = Math.min(8, remaining);
+    const currBatch = job.current_batch || 1;
+    const totalBatches = job.total_batches || Math.max(1, Math.ceil(total / 8));
 
     if (remaining > 0) {
+        const nextStart = completed + 1;
+        const nextEnd = completed + nextCount;
         bar.innerHTML = `
             <div class="batch-info-text">
-                ✨ Đã vẽ xong <strong>${completed}/${total}</strong> khung tranh!
+                ✨ Đã vẽ xong <strong>${completed}/${total}</strong> khung tranh (Đợt ${currBatch}/${totalBatches})!
             </div>
             <button type="button" class="btn-continue-batch" onclick="continueComicBatch('${jobId}')">
-                🎨 Tiếp tục vẽ các khung tiếp theo (${remaining} khung còn lại)
+                🎨 Tạo tiếp ${nextCount} ảnh (Khung ${nextStart} - ${nextEnd})
             </button>
         `;
         bar.style.display = 'flex';
@@ -2684,7 +2743,7 @@ async function continueComicBatch(jobId) {
     const btn = bar ? bar.querySelector('.btn-continue-batch') : null;
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '⏳ Đang khởi tạo vẽ tiếp...';
+        btn.innerHTML = '⏳ Đang khởi tạo vẽ tiếp đợt mới...';
     }
 
     const loader = document.getElementById('comicLoading');
@@ -2705,7 +2764,7 @@ async function continueComicBatch(jobId) {
             alert(data.message || 'Không thể tạo đợt vẽ tiếp theo');
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '🎨 Tiếp tục vẽ các khung tiếp theo';
+                btn.innerHTML = '🎨 Tiếp tục tạo đợt ảnh tiếp theo';
             }
             if (loader) loader.style.display = 'none';
             return;
@@ -2741,6 +2800,7 @@ async function checkAndResumeComicJob(jobId) {
             if (typeof BackgroundManager !== 'undefined') BackgroundManager.setContext('comic');
             const loader = document.getElementById('comicLoading');
             if (loader) loader.style.display = 'block';
+            updateBatchTrackerUI(job, panels);
             await pollComicJob(jobId);
         } else if ((job.status === 'completed' || job.status === 'partial') && panels.length > 0) {
             // Restore rendered comic if user returns
@@ -2756,6 +2816,7 @@ async function checkAndResumeComicJob(jobId) {
                     renderStoryboardAct(act, actIdx, grid);
                 });
             }
+            updateBatchTrackerUI(job, panels);
             renderComicBatchActionBar(jobId, job, panels);
         } else {
             localStorage.removeItem('narrai_active_comic_job');
