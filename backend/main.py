@@ -877,7 +877,97 @@ def run_continue_comic_batch_job(job_id: str, comic_id: int, batch_size: int = 8
         logger.error(f"[ComicJob] Continue batch error: {repr(e)}")
     finally:
         db.close()
+@app.post("/api/comic/jobs/create")
+def create_comic_job(
+    request: CreateComicJobRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    user_id = current_user.id if current_user else None
+    if not user_id:
+        first_user = db.query(User).first()
+        if first_user:
+            user_id = first_user.id
 
+    effective_text = (request.story_text or "").strip()
+    if not effective_text or len(effective_text) < 10:
+        if request.story_id:
+            s_rec = db.query(Story).filter(Story.id == request.story_id).first()
+            if s_rec and s_rec.story_content:
+                effective_text = s_rec.story_content
+        if not effective_text or len(effective_text) < 10:
+            raise HTTPException(status_code=400, detail="Vui lòng cung cấp nội dung câu chuyện chữ để chuyển thể sang truyện tranh.")
+
+    job_id = f"job_{uuid.uuid4().hex[:16]}"
+    job = ComicJob(
+        id=job_id,
+        user_id=user_id,
+        story_id=request.story_id,
+        status="pending",
+        progress_percent=0,
+        current_step="Đang khởi tạo tiến trình tạo truyện tranh..."
+    )
+    db.add(job)
+    db.commit()
+
+    background_tasks.add_task(
+        run_comic_generation_job,
+        job_id,
+        request.story_id,
+        effective_text,
+        request.genre or "",
+        request.style or "",
+        user_id,
+        8  # Batch 1 size
+    )
+
+    return {"status": "success", "job_id": job_id}
+
+
+@app.post("/api/comic/jobs/{job_id}/continue-batch")
+def continue_comic_batch(
+    job_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Triggers generation for the next batch of 6-8 pending panels.
+    """
+    job = db.query(ComicJob).filter(ComicJob.id == job_id).first()
+    if not job or not job.comic_id:
+        raise HTTPException(status_code=404, detail="Không tìm thấy tiến trình.")
+
+    comic = db.query(Comic).filter(Comic.id == job.comic_id).first()
+    if not comic:
+        raise HTTPException(status_code=404, detail="Không tìm thấy truyện tranh.")
+
+    pending_panels = [p for p in comic.panels if not (p.final_image_url or p.image_url)]
+    if not pending_panels:
+        return {
+            "status": "success",
+            "message": "Toàn bộ khung tranh đã được tạo xong!",
+            "all_completed": True
+        }
+
+    job.status = "processing"
+    job.current_step = f"Đang khởi tạo vẽ tiếp đợt tranh mới ({len(pending_panels)} khung còn lại)..."
+    db.commit()
+
+    background_tasks.add_task(
+        run_continue_comic_batch_job,
+        job_id,
+        job.comic_id,
+        8  # next batch size
+    )
+
+    return {
+        "status": "success",
+        "job_id": job_id,
+        "remaining_count": len(pending_panels),
+        "batch_size": min(8, len(pending_panels))
+    }
 
 
 @app.get("/api/comic/jobs/{job_id}")
