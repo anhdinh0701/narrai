@@ -753,7 +753,7 @@ def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: s
             job.current_step = f"Đã hoàn thành {job.completed_panels}/{job.total_panels} khung tranh."
         else:
             job.status = "failed"
-            job.current_step = "Chưa thể tạo ảnh vì tài khoản Stability AI chưa có credits."
+            job.current_step = f"Không thể tạo ảnh qua ComfyUI: {job.error_message or 'Vui lòng kiểm tra kết nối ComfyUI & ngrok'}"
 
         db.commit()
 
@@ -1380,25 +1380,33 @@ def regenerate_comfyui_panel(request: RegenerateComfyUIPanelRequest, db: Session
     prompt = (request.prompt or panel.image_prompt or "comic manga scene").strip()
     seed = (panel.id * 7919 + int(time.time())) % 100000000
 
-    raw_image = generate_comic_panel_image(prompt, seed=seed)
+    try:
+        raw_image = generate_comic_panel_image(prompt, seed=seed)
 
-    proc_result = post_processor.process_panel_image(
-        comic_id=panel.comic_id,
-        panel_index=panel.panel_index,
-        raw_image=raw_image,
-        prompt=prompt,
-        mode="none"
-    )
+        proc_result = post_processor.process_panel_image(
+            comic_id=panel.comic_id,
+            panel_index=panel.panel_index,
+            raw_image=raw_image,
+            prompt=prompt,
+            mode="none"
+        )
 
-    panel.original_image_url = proc_result["original_url"]
-    panel.processed_image_url = proc_result["processed_url"]
-    panel.final_image_url = proc_result["final_url"]
-    panel.image_url = proc_result["final_url"]
-    panel.enhancement_provider = "comfyui"
-    panel.enhancement_mode = "none"
-    panel.enhancement_status = "comfyui_generated"
-    db.commit()
-    db.refresh(panel)
+        panel.original_image_url = proc_result["original_url"]
+        panel.processed_image_url = proc_result["processed_url"]
+        panel.final_image_url = proc_result["final_url"]
+        panel.image_url = proc_result["final_url"]
+        panel.enhancement_provider = "comfyui"
+        panel.enhancement_mode = "none"
+        panel.enhancement_status = "comfyui_generated"
+        panel.generation_status = "completed"
+        panel.error_message = None
+        db.commit()
+        db.refresh(panel)
+    except Exception as e:
+        panel.generation_status = "failed"
+        panel.error_message = str(e)
+        db.commit()
+        return {"status": "error", "message": f"Lỗi tạo ảnh ComfyUI: {str(e)}"}
 
     return {
         "status": "success",
@@ -1547,23 +1555,32 @@ def copilot_event(request: CopilotEventRequest, current_user: User = Depends(get
             image_prompt = params.get("image_prompt", "anime manga panel, high quality")
             panel_number = params.get("panel_number")
             try:
-                from services.image_gen import generate_comic_panel_image
-                import time as _time
+                from services.image_provider import ImageProviderFactory
+                import time as _time, uuid as _uuid, base64 as _base64
+                comfy = ImageProviderFactory.get_primary_provider()
                 seed = int(_time.time()) % 100000000
-                raw_image = generate_comic_panel_image(image_prompt, seed=seed)
-
-                # Save image file
-                import uuid, os as _os
-                from pathlib import Path
-                images_dir = Path(__file__).parent / "images" / "final"
-                images_dir.mkdir(parents=True, exist_ok=True)
-                filename = f"chat_panel_{uuid.uuid4().hex[:8]}.png"
-                filepath = images_dir / filename
-                with open(filepath, "wb") as f:
-                    f.write(raw_image)
-                image_url = f"/api/images/final/{filename}"
-                result["action_params"]["image_url"] = image_url
-                print(f"[Copilot] Panel generated: {image_url}")
+                gen_result = comfy.generate_image(
+                    prompt=image_prompt,
+                    negative_prompt="text, watermark, speech bubbles, monochrome, lowres, bad anatomy",
+                    aspect_ratio="square",
+                    seed=seed
+                )
+                if gen_result.get("success") and gen_result.get("image_bytes"):
+                    img_bytes = gen_result["image_bytes"]
+                    backend_dir = os.path.dirname(os.path.abspath(__file__))
+                    final_dir = os.path.join(backend_dir, "outputs", "final")
+                    os.makedirs(final_dir, exist_ok=True)
+                    filename = f"chat_panel_{_uuid.uuid4().hex[:8]}.png"
+                    filepath = os.path.join(final_dir, filename)
+                    with open(filepath, "wb") as f:
+                        f.write(img_bytes)
+                    image_url = f"/api/images/final/{filename}"
+                    result["action_params"]["image_url"] = image_url
+                    print(f"[Copilot] Panel generated: {image_url}")
+                else:
+                    err = gen_result.get("error_message", "ComfyUI không phản hồi")
+                    result["action_params"]["image_url"] = None
+                    result["action_params"]["image_error"] = err
             except Exception as img_err:
                 print(f"[Copilot] Panel generation error: {img_err}")
                 result["action_params"]["image_url"] = None

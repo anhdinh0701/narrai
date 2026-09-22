@@ -3,8 +3,9 @@ import os
 import time
 
 class GroqClient:
-    # Modern Groq models support large context windows; keep safe headroom.
-    MAX_REQUEST_TOKENS = 16000
+    # Groq's real per-request limit is ~8000 tokens (prompt + completion combined).
+    # Keep headroom at 7500 to avoid 429/413 errors.
+    MAX_REQUEST_TOKENS = 7500
     MIN_COMPLETION_TOKENS = 256
 
     @staticmethod

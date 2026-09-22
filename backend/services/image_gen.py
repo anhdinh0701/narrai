@@ -122,7 +122,7 @@ def generate_comic_panel_image(
     layout_type: str = "square",
     width: Optional[int] = None,
     height: Optional[int] = None,
-    steps: int = 15,
+    steps: int = 14,
     negative_prompt: Optional[str] = None
 ) -> str:
     """
@@ -142,7 +142,7 @@ def generate_comic_panel_image(
 
     ckpt = get_first_checkpoint()
     if not ckpt:
-        raise RuntimeError("ComfyUI cục bộ hiện đang ngoại tuyến hoặc không tìm thấy checkpoint. Vui lòng khởi động ComfyUI tại http://127.0.0.1:8188.")
+        raise RuntimeError("ComfyUI hiện đang ngoại tuyến hoặc không tìm thấy checkpoint animagineXLV31_v31.safetensors. Vui lòng kiểm tra ngrok và ComfyUI.")
 
     clean_prompt = (prompt or "vibrant full color anime manga illustration").strip()
     if "masterpiece" not in clean_prompt.lower():

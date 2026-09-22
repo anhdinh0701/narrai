@@ -120,47 +120,96 @@ class ProComicAgent:
             self.tertiary_llm = None
 
     def generate(self, story_text: str, genre: str = "", style: str = "") -> Dict[str, Any]:
-        trimmed = (story_text or "").strip()[:7000]
+        trimmed = (story_text or "").strip()[:6000]
         if not trimmed or len(trimmed) < 15:
             logger.warning("[ProComicAgent] Story text too short, using dynamic fallback.")
             return self._create_dynamic_fallback(story_text=story_text, genre=genre, style=style)
 
         genre_hint = f"\nThể loại mong muốn: {genre}" if genre else ""
         style_hint = f"\nPhong cách hội họa: {style}" if style else ""
-        user_prompt = (
-            f"Hãy phân tích và chuyển thể câu chuyện sau thành kịch bản truyện tranh 16 ĐẾN 20 KHUNG TRANH (khuyến nghị 16-18 khung), "
-            f"đảm bảo mỗi khung tiếp nối liền mạch với khung trước, nhân vật và bối cảnh nhất quán xuyên suốt, "
-            f"bám sát 100% nhân vật, ngoại hình, nghề nghiệp, bối cảnh, lời thoại và diễn biến trong truyện chữ:{genre_hint}{style_hint}\n\n{trimmed}"
-        )
 
-        messages = [
+        # ── Pass 1: Bible + Panels 1-10 ─────────────────────────────────
+        user_prompt_p1 = (
+            f"Hãy phân tích câu chuyện sau và tạo: (1) Character Bible, (2) Location Bible, (3) story_setting, (4) negative_prompt, "
+            f"(5) panels 1 đến 10 bám sát 100% nhân vật, trang phục, bối cảnh, lời thoại của truyện. "
+            f"Mỗi khung tiếp nối liền mạch với khung trước, nhân vật nhất quán xuyên suốt.{genre_hint}{style_hint}\n\n{trimmed}"
+        )
+        messages_p1 = [
             {"role": "system", "content": PRO_COMIC_SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": user_prompt_p1}
         ]
 
-        # Model cascade: Primary (gpt-oss-120b) -> Fallback 1 (qwen3.8-27b) -> Fallback 2 (gpt-oss-20b)
         clients = [self.llm]
         if self.fallback_llm:
             clients.append(self.fallback_llm)
         if self.tertiary_llm:
             clients.append(self.tertiary_llm)
 
+        base_data = None
         for client in clients:
             try:
                 raw = client.chat(
-                    messages=messages,
+                    messages=messages_p1,
                     temperature=0.3,
-                    max_tokens=6000,
+                    max_tokens=3500,
                     response_format={"type": "json_object"}
                 )
                 data = self._parse_or_repair_json(raw)
-                if data and isinstance(data.get("panels"), list) and len(data["panels"]) >= 6:
-                    return self._process_script_data(data, style)
+                if data and isinstance(data.get("panels"), list) and len(data["panels"]) >= 4:
+                    base_data = data
+                    break
             except Exception as e:
-                logger.warning(f"[ProComicAgent] LLM {getattr(client, 'model', 'unknown')} failed: {e}")
+                logger.warning(f"[ProComicAgent] Pass1 LLM {getattr(client, 'model', 'unknown')} failed: {e}")
 
-        logger.warning("[ProComicAgent] All LLMs failed or returned invalid JSON. Using dynamic story-based fallback.")
-        return self._create_dynamic_fallback(story_text=trimmed, genre=genre, style=style)
+        if not base_data:
+            logger.warning("[ProComicAgent] Pass1 all LLMs failed. Using dynamic fallback.")
+            return self._create_dynamic_fallback(story_text=trimmed, genre=genre, style=style)
+
+        panels_so_far = base_data.get("panels", [])
+        current_count = len(panels_so_far)
+        logger.info(f"[ProComicAgent] Pass1 got {current_count} panels.")
+
+        # ── Pass 2: Panels 11-20 (extend the story) ──────────────────────
+        char_bible_json = json.dumps(base_data.get("character_bible", []), ensure_ascii=False)
+        loc_bible_json = json.dumps(base_data.get("location_bible", []), ensure_ascii=False)
+
+        user_prompt_p2 = (
+            f"Tiếp tục câu chuyện dưới đây. Sử dụng đúng Character Bible và Location Bible đã có, "
+            f"tạo thêm panels {current_count + 1} đến {current_count + 8} tiếp nối liền mạch từ panel {current_count}. "
+            f"Chỉ trả về JSON với key \"panels\" là array các panel mới (KHÔNG lặp lại Bible).\n\n"
+            f"Character Bible: {char_bible_json}\n"
+            f"Location Bible: {loc_bible_json}\n\n"
+            f"Câu chuyện gốc:\n{trimmed}"
+        )
+        messages_p2 = [
+            {"role": "system", "content": PRO_COMIC_SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt_p2}
+        ]
+
+        for client in clients:
+            try:
+                raw2 = client.chat(
+                    messages=messages_p2,
+                    temperature=0.3,
+                    max_tokens=3000,
+                    response_format={"type": "json_object"}
+                )
+                data2 = self._parse_or_repair_json(raw2)
+                if data2 and isinstance(data2.get("panels"), list) and len(data2["panels"]) >= 2:
+                    # Merge panels from Pass2 into base_data
+                    extra_panels = data2["panels"]
+                    # Re-number panel_index sequentially
+                    for j, ep in enumerate(extra_panels):
+                        ep["panel_index"] = current_count + j + 1
+                    panels_so_far.extend(extra_panels)
+                    logger.info(f"[ProComicAgent] Pass2 added {len(extra_panels)} panels. Total: {len(panels_so_far)}")
+                    break
+            except Exception as e:
+                logger.warning(f"[ProComicAgent] Pass2 LLM {getattr(client, 'model', 'unknown')} failed: {e}")
+
+        base_data["panels"] = panels_so_far
+        return self._process_script_data(base_data, style)
+
 
     def _parse_or_repair_json(self, raw: str) -> Optional[Dict[str, Any]]:
         """Parses JSON or repairs truncated JSON response from LLM."""
@@ -423,12 +472,12 @@ class ProComicAgent:
             "comfy_tags": loc_tags
         }]
 
-        # Segment sentences for 8 panels
+        # Segment sentences for 16 panels
         raw_sentences = [s.strip() for s in re.split(r'(?<=[.!?…\n])\s+', text) if len(s.strip()) > 6]
         if not raw_sentences:
             raw_sentences = [text]
 
-        target_panels = 8
+        target_panels = 16
         segments = []
         if len(raw_sentences) <= target_panels:
             segments = raw_sentences
@@ -450,6 +499,14 @@ class ProComicAgent:
             "intense close-up facial shot",
             "heroic dynamic action shot",
             "cinematic three-quarter view shot",
+            "over-the-shoulder reaction shot",
+            "cinematic wide establishing shot",
+            "medium shot slightly above eye-level",
+            "tight close-up on hands or object",
+            "dramatic low angle power shot",
+            "emotional facial close-up",
+            "dynamic side profile shot",
+            "wide panoramic transition shot",
             "inspirational wide ending shot"
         ]
 

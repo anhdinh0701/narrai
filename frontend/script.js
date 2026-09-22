@@ -2512,7 +2512,7 @@ async function pollComicJob(jobId) {
     const loader = document.getElementById('comicLoading');
     const grid = document.getElementById('comicGrid');
     let attempts = 0;
-    const maxAttempts = 180; // 6 minutes max
+    const maxAttempts = 360; // 12 minutes max for 16-20 panels on local GPU
 
     while (attempts < maxAttempts) {
         attempts++;
@@ -2536,7 +2536,7 @@ async function pollComicJob(jobId) {
 
             const statusEl = document.getElementById('enhancementStatusText');
             if (statusEl && job.current_step) {
-                statusEl.innerText = `Tiến trình: ${job.current_step} (${job.progress_percent}%)`;
+                statusEl.innerText = `${job.current_step} (${job.progress_percent}%)`;
             }
 
             // Check completion or partial state
@@ -2571,7 +2571,7 @@ async function pollComicJob(jobId) {
                         alert(job.error_message);
                     }
                 } else {
-                    alert(job.error_message || 'Không thể tạo truyện tranh lúc này.');
+                    alert(job.error_message || 'Không thể tạo truyện tranh lúc này. Hãy kiểm tra ComfyUI và ngrok.');
                 }
                 return;
             }
@@ -2582,7 +2582,7 @@ async function pollComicJob(jobId) {
     }
 
     if (loader) loader.style.display = 'none';
-    alert('Tiến trình tạo truyện tranh kéo dài hơn dự kiến. Bạn vui lòng tải lại trang (F5) để xem kết quả.');
+    alert('Tiến trình tạo truyện tranh vẫn đang chạy ngầm trên ComfyUI. Bạn vui lòng tải lại trang (F5) để xem kết quả khi hoàn tất.');
 }
 
 async function checkAndResumeComicJob(jobId) {
