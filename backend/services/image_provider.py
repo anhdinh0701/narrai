@@ -255,86 +255,89 @@ class ComfyUIProvider(ImageGenerationProvider):
         aspect_ratio: str = "1:1",
         seed: Optional[int] = None
     ) -> Dict[str, Any]:
-        """Generate full-color anime panel via local ComfyUI instance."""
-        if not self.is_available():
-            return {
-                "success": False,
-                "image_bytes": None,
-                "error_code": "COMFYUI_OFFLINE",
-                "error_message": (
-                    "ComfyUI cục bộ hiện đang ngoại tuyến. "
-                    "Vui lòng khởi động ComfyUI tại http://127.0.0.1:8188 trên máy tính để tạo tranh."
-                ),
-                "provider": "comfyui"
-            }
+        """Generate full-color anime panel via local ComfyUI instance, with automatic Stability AI cloud fallback."""
+        layout = self.normalize_aspect_ratio(aspect_ratio)
 
-        try:
-            from services.image_gen import generate_comic_panel_image
-            layout = self.normalize_aspect_ratio(aspect_ratio)
-            
-            # Optimal latent dimensions for SDXL Animagine XL
-            if layout == "wide":
-                w, h = 832, 480
-            elif layout == "tall":
-                w, h = 480, 832
-            else:
-                w, h = 768, 768
+        # 1. Primary: Try Local ComfyUI GPU
+        if self.is_available():
+            try:
+                from services.image_gen import generate_comic_panel_image
+                
+                # Optimal latent dimensions for SDXL Animagine XL
+                if layout == "wide":
+                    w, h = 832, 480
+                elif layout == "tall":
+                    w, h = 480, 832
+                else:
+                    w, h = 768, 768
 
-            effective_seed = seed if (seed is not None and seed > 0) else int(time.time() * 1000) % 1000000
+                effective_seed = seed if (seed is not None and seed > 0) else int(time.time() * 1000) % 1000000
 
-            result = generate_comic_panel_image(
+                result = generate_comic_panel_image(
+                    prompt=prompt,
+                    seed=effective_seed,
+                    layout_type=layout,
+                    width=w,
+                    height=h,
+                    steps=14,
+                    negative_prompt=negative_prompt
+                )
+
+                if result and isinstance(result, str):
+                    if result.startswith("data:image/"):
+                        parts = result.split(",", 1)
+                        import base64
+                        img_bytes = base64.b64decode(parts[1])
+                        return {
+                            "success": True,
+                            "image_bytes": img_bytes,
+                            "error_code": None,
+                            "error_message": None,
+                            "provider": "comfyui",
+                            "aspect_ratio": layout
+                        }
+                    elif result.startswith("/api/images/"):
+                        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                        rel = result.replace("/api/images/", "").strip("/")
+                        local_fp = os.path.join(backend_dir, "outputs", rel)
+                        if os.path.exists(local_fp):
+                            with open(local_fp, "rb") as f:
+                                return {
+                                    "success": True,
+                                    "image_bytes": f.read(),
+                                    "error_code": None,
+                                    "error_message": None,
+                                    "provider": "comfyui",
+                                    "aspect_ratio": layout
+                                }
+            except Exception as e:
+                logger.warning("[ComfyUIProvider] ComfyUI generation failed: %s. Checking Stability AI fallback...", e)
+
+        # 2. Secondary: Fallback to Stability AI Cloud Provider if configured
+        stability = StabilityImageProvider()
+        if stability.is_available():
+            logger.info("[ImageProvider] ComfyUI offline or failed. Falling back to Stability AI Cloud...")
+            stab_res = stability.generate_image(
                 prompt=prompt,
-                seed=effective_seed,
-                layout_type=layout,
-                width=w,
-                height=h,
-                steps=16,
-                negative_prompt=negative_prompt
+                negative_prompt=negative_prompt,
+                aspect_ratio=aspect_ratio,
+                seed=seed
             )
+            if stab_res.get("success"):
+                return stab_res
+            else:
+                logger.warning("[ImageProvider] Stability AI fallback failed: %s", stab_res.get("error_message"))
 
-            if result and isinstance(result, str):
-                if result.startswith("data:image/"):
-                    parts = result.split(",", 1)
-                    import base64
-                    img_bytes = base64.b64decode(parts[1])
-                    return {
-                        "success": True,
-                        "image_bytes": img_bytes,
-                        "error_code": None,
-                        "error_message": None,
-                        "provider": "comfyui",
-                        "aspect_ratio": layout
-                    }
-                elif result.startswith("/api/images/"):
-                    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                    rel = result.replace("/api/images/", "").strip("/")
-                    local_fp = os.path.join(backend_dir, "outputs", rel)
-                    if os.path.exists(local_fp):
-                        with open(local_fp, "rb") as f:
-                            return {
-                                "success": True,
-                                "image_bytes": f.read(),
-                                "error_code": None,
-                                "error_message": None,
-                                "provider": "comfyui",
-                                "aspect_ratio": layout
-                            }
-        except Exception as e:
-            logger.error("[ComfyUIProvider] Generation error: %s", e)
-            return {
-                "success": False,
-                "image_bytes": None,
-                "error_code": "COMFYUI_ERROR",
-                "error_message": f"Lỗi khi render ảnh qua ComfyUI: {str(e)}",
-                "provider": "comfyui"
-            }
-
+        # 3. If both providers unavailable
         return {
             "success": False,
             "image_bytes": None,
-            "error_code": "COMFYUI_NO_OUTPUT",
-            "error_message": "ComfyUI không trả về dữ liệu ảnh hợp lệ",
-            "provider": "comfyui"
+            "error_code": "COMFYUI_OFFLINE",
+            "error_message": (
+                "ComfyUI hiện đang ngoại tuyến hoặc không thể tạo ảnh. "
+                "Vui lòng khởi động ComfyUI tại http://127.0.0.1:8188 trên máy tính và chạy ngrok."
+            ),
+            "provider": "none"
         }
 
 

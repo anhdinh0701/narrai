@@ -604,10 +604,11 @@ class CreateComicJobRequest(BaseModel):
     style: Optional[str] = ""
     enhancement_mode: Optional[str] = "none"
 
-def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: str, genre: str, style: str, user_id: Optional[int]):
+def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: str, genre: str, style: str, user_id: Optional[int], batch_size: int = 8):
     """
-    Background Task: Executes 8-stage Story-to-Comic generation pipeline.
-    Updates ComicJob in real-time so frontend polling reflects live progress.
+    Background Task: Executes Story-to-Comic generation pipeline in batches.
+    Batch 1: Generates the first 8 panels with live structured logs.
+    Subsequent batches can be triggered on-demand via continue-batch.
     """
     db = SessionLocal()
     try:
@@ -654,12 +655,13 @@ def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: s
             comic.story_setting = story_setting
             comic.status = "processing"
 
-        job.total_panels = len(panels_plan)
-        job.current_step = f"Đã xây dựng kịch bản {len(panels_plan)} khung tranh. Bắt đầu vẽ tranh..."
-        job.progress_percent = 20
+        total_panels_count = len(panels_plan)
+        job.total_panels = total_panels_count
+        job.current_step = f"Đã xây dựng kịch bản {total_panels_count} khung tranh. Bắt đầu vẽ đợt 1 ({min(batch_size, total_panels_count)} khung)..."
+        job.progress_percent = 15
         db.commit()
 
-        # Step 2: Initialize panel records in DB (so frontend immediately gets the script, characters, and dialogues)
+        # Step 2: Initialize panel records in DB
         panel_records = []
         for idx, p_data in enumerate(panels_plan):
             p_idx = p_data.get("panel_index", idx + 1)
@@ -688,25 +690,27 @@ def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: s
             panel_records.append(p_rec)
         db.commit()
 
-        # Step 3: Sequential Image Generation via Primary Provider (ComfyUI Local GPU)
+        # Step 3: Generate Batch 1 (e.g. first 8 panels)
         from services.image_provider import ImageProviderFactory
         comfy_provider = ImageProviderFactory.get_primary_provider()
         backend_dir = os.path.dirname(os.path.abspath(__file__))
         final_dir = os.path.join(backend_dir, "outputs", "final")
         os.makedirs(final_dir, exist_ok=True)
 
-        if not comfy_provider.is_available():
-            job.error_message = (
-                "ComfyUI cục bộ hiện đang tắt (không kết nối được tới http://127.0.0.1:8188). "
-                "Vui lòng khởi động ComfyUI trên máy tính để tạo tranh."
-            )
+        batch_to_generate = panel_records[:batch_size]
+        print(f"[COMIC] Starting Batch 1 ({len(batch_to_generate)}/{total_panels_count} panels)")
 
-        for i, panel in enumerate(panel_records):
-            job.current_step = f"Đang vẽ tranh khung {i + 1}/{len(panel_records)} qua ComfyUI..."
-            job.progress_percent = int(20 + ((i) / len(panel_records)) * 75)
+        for i, panel in enumerate(batch_to_generate):
+            scene_num = panel.scene_id or ((panel.panel_index - 1) // 2 + 1)
+            print(f"[COMIC] Scene {scene_num} (Khung {panel.panel_index}) started")
+            print(f"[COMIC] Prompt generated: {panel.image_prompt[:90]}...")
+            
+            job.current_step = f"Đang vẽ tranh khung {panel.panel_index}/{total_panels_count} (Đợt 1)..."
+            job.progress_percent = int(15 + ((i) / len(batch_to_generate)) * 80)
             panel.generation_status = "generating"
             db.commit()
 
+            print(f"[COMIC] Image generation started via ComfyUI (with Stability AI fallback)")
             seed_val = (comic.id * 100) + panel.panel_index
             result = comfy_provider.generate_image(
                 prompt=panel.image_prompt,
@@ -726,36 +730,41 @@ def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: s
                 panel.processed_image_url = panel_url
                 panel.final_image_url = panel_url
                 panel.image_url = panel_url
-                panel.enhancement_provider = "comfyui"
+                panel.enhancement_provider = result.get("provider", "comfyui")
                 panel.enhancement_mode = "text-to-image"
                 panel.enhancement_status = "completed"
                 panel.generation_status = "completed"
                 panel.error_message = None
                 job.completed_panels += 1
+                print(f"[COMIC] Image generation response received: Success ({len(result['image_bytes'])} bytes)")
+                print(f"[COMIC] Image URL saved: {panel_url}")
+                print(f"[COMIC] Scene {scene_num} (Khung {panel.panel_index}) completed")
             else:
                 err_code = result.get("error_code")
                 err_msg = result.get("error_message") or "Không thể tạo ảnh cho khung tranh này"
                 panel.generation_status = "failed"
                 panel.error_message = f"[{err_code}] {err_msg}"
+                print(f"[COMIC] Image generation failed for Khung {panel.panel_index}: {err_msg}")
                 if not job.error_message:
                     job.error_message = err_msg
 
             db.commit()
 
-        # Step 4: Finalize Job
+        # Step 4: Finalize Batch 1
         comic.status = "ready"
-        job.progress_percent = 100
-        if job.completed_panels == job.total_panels:
+        job.progress_percent = int((job.completed_panels / total_panels_count) * 100) if total_panels_count > 0 else 100
+        if job.completed_panels >= total_panels_count:
             job.status = "completed"
-            job.current_step = "Hoàn tất chuyển thể truyện tranh!"
+            job.current_step = f"Hoàn tất chuyển thể toàn bộ {job.completed_panels} khung tranh!"
         elif job.completed_panels > 0:
             job.status = "partial"
-            job.current_step = f"Đã hoàn thành {job.completed_panels}/{job.total_panels} khung tranh."
+            job.current_step = f"Đã hoàn thành đợt 1 ({job.completed_panels}/{total_panels_count} khung tranh)."
         else:
             job.status = "failed"
-            job.current_step = f"Không thể tạo ảnh qua ComfyUI: {job.error_message or 'Vui lòng kiểm tra kết nối ComfyUI & ngrok'}"
+            job.current_step = f"Không thể tạo ảnh: {job.error_message or 'Vui lòng kiểm tra kết nối ComfyUI/ngrok'}"
 
         db.commit()
+        print(f"[COMIC] Batch 1 finished. Status: {job.status}, Completed: {job.completed_panels}/{total_panels_count}")
 
     except Exception as e:
         logger.error(f"[ComicJob] Fatal job failure: {repr(e)}")
@@ -772,51 +781,103 @@ def run_comic_generation_job(job_id: str, story_id: Optional[int], story_text: s
         db.close()
 
 
-@app.post("/api/comic/jobs/create")
-def create_comic_job(
-    request: CreateComicJobRequest,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    user_id = current_user.id if current_user else None
-    if not user_id:
-        first_user = db.query(User).first()
-        if first_user:
-            user_id = first_user.id
+def run_continue_comic_batch_job(job_id: str, comic_id: int, batch_size: int = 8):
+    """
+    Background Task: Generates the next batch of remaining comic panels on-demand.
+    """
+    db = SessionLocal()
+    try:
+        job = db.query(ComicJob).filter(ComicJob.id == job_id).first()
+        comic = db.query(Comic).filter(Comic.id == comic_id).first()
+        if not job or not comic:
+            return
 
-    effective_text = (request.story_text or "").strip()
-    if not effective_text or len(effective_text) < 10:
-        if request.story_id:
-            s_rec = db.query(Story).filter(Story.id == request.story_id).first()
-            if s_rec and s_rec.story_content:
-                effective_text = s_rec.story_content
-        if not effective_text or len(effective_text) < 10:
-            raise HTTPException(status_code=400, detail="Vui lòng cung cấp nội dung câu chuyện chữ để chuyển thể sang truyện tranh.")
+        all_panels = sorted(comic.panels, key=lambda p: p.panel_index)
+        total_panels_count = len(all_panels)
+        
+        # Pending or failed panels to generate in this batch
+        pending = [p for p in all_panels if not (p.final_image_url or p.image_url)]
+        batch_to_generate = pending[:batch_size]
 
-    job_id = f"job_{uuid.uuid4().hex[:16]}"
-    job = ComicJob(
-        id=job_id,
-        user_id=user_id,
-        story_id=request.story_id,
-        status="pending",
-        progress_percent=0,
-        current_step="Đang khởi tạo tiến trình tạo truyện tranh..."
-    )
-    db.add(job)
-    db.commit()
+        if not batch_to_generate:
+            job.status = "completed"
+            job.current_step = f"Toàn bộ {total_panels_count} khung tranh đã được tạo hoàn tất!"
+            job.progress_percent = 100
+            db.commit()
+            return
 
-    background_tasks.add_task(
-        run_comic_generation_job,
-        job_id,
-        request.story_id,
-        effective_text,
-        request.genre or "",
-        request.style or "",
-        user_id
-    )
+        from services.image_provider import ImageProviderFactory
+        comfy_provider = ImageProviderFactory.get_primary_provider()
+        backend_dir = os.path.dirname(os.path.abspath(__file__))
+        final_dir = os.path.join(backend_dir, "outputs", "final")
+        os.makedirs(final_dir, exist_ok=True)
 
-    return {"status": "success", "job_id": job_id}
+        print(f"[COMIC] Continuing Batch generation for comic {comic_id} ({len(batch_to_generate)} panels)")
+
+        for i, panel in enumerate(batch_to_generate):
+            scene_num = panel.scene_id or ((panel.panel_index - 1) // 2 + 1)
+            print(f"[COMIC] Scene {scene_num} (Khung {panel.panel_index}) started")
+            print(f"[COMIC] Prompt generated: {panel.image_prompt[:90]}...")
+            
+            job.current_step = f"Đang vẽ tranh khung {panel.panel_index}/{total_panels_count}..."
+            panel.generation_status = "generating"
+            db.commit()
+
+            print(f"[COMIC] Image generation started via ComfyUI")
+            seed_val = (comic.id * 100) + panel.panel_index
+            result = comfy_provider.generate_image(
+                prompt=panel.image_prompt,
+                negative_prompt=panel.negative_prompt or "",
+                aspect_ratio=panel.layout_type,
+                seed=seed_val
+            )
+
+            if result.get("success") and result.get("image_bytes"):
+                fn = f"panel_{comic.id}_{panel.panel_index}_{uuid.uuid4().hex[:8]}.png"
+                fp = os.path.join(final_dir, fn)
+                with open(fp, "wb") as f:
+                    f.write(result["image_bytes"])
+                
+                panel_url = f"/api/images/final/{fn}"
+                panel.original_image_url = panel_url
+                panel.processed_image_url = panel_url
+                panel.final_image_url = panel_url
+                panel.image_url = panel_url
+                panel.enhancement_provider = result.get("provider", "comfyui")
+                panel.generation_status = "completed"
+                panel.error_message = None
+                print(f"[COMIC] Image generation response received: Success ({len(result['image_bytes'])} bytes)")
+                print(f"[COMIC] Image URL saved: {panel_url}")
+                print(f"[COMIC] Scene {scene_num} (Khung {panel.panel_index}) completed")
+            else:
+                err_code = result.get("error_code")
+                err_msg = result.get("error_message") or "Không thể tạo ảnh cho khung tranh này"
+                panel.generation_status = "failed"
+                panel.error_message = f"[{err_code}] {err_msg}"
+                print(f"[COMIC] Image generation failed for Khung {panel.panel_index}: {err_msg}")
+
+            job.completed_panels = sum(1 for p in all_panels if (p.final_image_url or p.image_url))
+            job.progress_percent = int((job.completed_panels / total_panels_count) * 100) if total_panels_count > 0 else 100
+            db.commit()
+
+        # Check remaining
+        remaining = [p for p in all_panels if not (p.final_image_url or p.image_url)]
+        if not remaining:
+            job.status = "completed"
+            job.current_step = f"Hoàn tất chuyển thể toàn bộ {total_panels_count} khung tranh!"
+            job.progress_percent = 100
+        else:
+            job.status = "partial"
+            job.current_step = f"Đã hoàn thành {job.completed_panels}/{total_panels_count} khung tranh."
+
+        db.commit()
+        print(f"[COMIC] Batch completed. Total finished: {job.completed_panels}/{total_panels_count}")
+
+    except Exception as e:
+        logger.error(f"[ComicJob] Continue batch error: {repr(e)}")
+    finally:
+        db.close()
+
 
 
 @app.get("/api/comic/jobs/{job_id}")
@@ -877,6 +938,11 @@ def get_comic_job_status(job_id: str, db: Session = Depends(get_db)):
                 "error_message": p.error_message
             })
 
+    total_p = job.total_panels or len(panels_data)
+    completed_p = sum(1 for p in panels_data if p.get("generation_status") == "completed" and p.get("image_url"))
+    remaining_p = sum(1 for p in panels_data if not p.get("image_url"))
+    has_more = remaining_p > 0
+
     return {
         "status": "success",
         "job": {
@@ -884,8 +950,10 @@ def get_comic_job_status(job_id: str, db: Session = Depends(get_db)):
             "status": job.status,
             "current_step": job.current_step,
             "progress_percent": job.progress_percent,
-            "total_panels": job.total_panels,
-            "completed_panels": job.completed_panels,
+            "total_panels": total_p,
+            "completed_panels": completed_p,
+            "remaining_panels": remaining_p,
+            "has_more_panels": has_more,
             "error_message": job.error_message,
             "comic_id": job.comic_id
         },
