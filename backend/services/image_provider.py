@@ -228,9 +228,13 @@ class ComfyUIProvider(ImageGenerationProvider):
         self.base_url = os.environ.get("COMFYUI_URL", "http://127.0.0.1:8188").rstrip("/")
 
     def is_available(self) -> bool:
-        """Fast non-blocking check if local ComfyUI is listening."""
+        """Fast check if ComfyUI is listening (supports local and ngrok tunnels)."""
         try:
-            resp = requests.get(f"{self.base_url}/system_stats", timeout=1.5)
+            resp = requests.get(
+                f"{self.base_url}/system_stats",
+                headers={'ngrok-skip-browser-warning': '1'},
+                timeout=3.0
+            )
             return resp.status_code == 200
         except Exception:
             return False
