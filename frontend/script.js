@@ -2371,78 +2371,12 @@ function groupPanelsIntoStoryboardActs(panels) {
 }
 
 function renderStoryboardDirectorDeck(totalPanels, actsCount, container) {
-    const deck = document.createElement('div');
-    deck.className = 'storyboard-director-deck';
-
-    deck.innerHTML = `
-        <div class="sb-info-group">
-            <span class="sb-badge-main">🎬 STORYBOARD DIRECTOR</span>
-            <div class="sb-title-wrap">
-                <div class="sb-title">
-                    <span>Bảng Phân Cảnh & Paneling Truyện Tranh</span>
-                    <span style="color:#38bdf8; font-size:0.85rem; font-weight:700;">[${actsCount} Hồi • ${totalPanels} Khung Tranh]</span>
-                </div>
-                <div class="sb-subtitle">Bố cục Paneling động theo kịch bản chuẩn • Bong bóng thoại hình oval đứng Manga</div>
-            </div>
-        </div>
-        <div class="sb-flow-controls">
-            <span class="sb-flow-label">Dòng Đọc:</span>
-            <button type="button" class="sb-flow-btn ${window.currentReadingFlow === 'webtoon' ? 'active' : ''}" data-flow="webtoon" onclick="setReadingFlow('webtoon')">
-                🌐 Webtoon (Trái ➔ Phải)
-            </button>
-            <button type="button" class="sb-flow-btn ${window.currentReadingFlow === 'manga' ? 'active' : ''}" data-flow="manga" onclick="setReadingFlow('manga')">
-                🇯🇵 Manga (Phải ➔ Trái)
-            </button>
-        </div>
-    `;
-
-    container.appendChild(deck);
+    // Header removed per user request — panels display directly without metadata bar
 }
 
 function renderStoryboardAct(act, actIndex, grid) {
-    const actSection = document.createElement('section');
-    actSection.className = 'storyboard-act-section';
-    actSection.id = `storyboard-act-${actIndex + 1}`;
-
-    // 1. Act Header Bar
-    const header = document.createElement('div');
-    header.className = 'storyboard-act-header';
-
-    const titleBox = document.createElement('div');
-    titleBox.className = 'act-title-box';
-
-    const badge = document.createElement('span');
-    badge.className = 'act-badge';
-    badge.style.background = act.badgeColor || '#F59E0B';
-    badge.textContent = `HỒI ${act.actNumber}`;
-    titleBox.appendChild(badge);
-
-    const name = document.createElement('h3');
-    name.className = 'act-name';
-    name.textContent = act.name;
-    titleBox.appendChild(name);
-
-    if (act.location) {
-        const locTag = document.createElement('span');
-        locTag.className = 'act-location-tag';
-        locTag.textContent = `📍 ${act.location}`;
-        titleBox.appendChild(locTag);
-    }
-
-    header.appendChild(titleBox);
-
-    // Reading Flow Indicator
-    const flowInd = document.createElement('div');
-    flowInd.className = 'reading-flow-indicator';
-    const isManga = window.currentReadingFlow === 'manga';
-    flowInd.innerHTML = isManga
-        ? '<span class="flow-direction-icon">◂</span> DÒNG ĐỌC: PHẢI ➔ TRÁI (MANGA CHUẨN)'
-        : '<span class="flow-direction-icon">▸</span> DÒNG ĐỌC: TRÁI ➔ PHẢI (WEBTOON HIỆN ĐẠI)';
-    header.appendChild(flowInd);
-
-    actSection.appendChild(header);
-
-    // 2. Paneling Page Grid
+    // Act headers (HỒI I/II/III, flow indicator) removed per user request
+    // Panels render directly into a shared page grid
     const pageGrid = document.createElement('div');
     const flowClass = window.currentReadingFlow === 'manga' ? 'flow-manga' : 'flow-webtoon';
     pageGrid.className = `pro-comic-page ${flowClass}`;
@@ -2451,8 +2385,7 @@ function renderStoryboardAct(act, actIndex, grid) {
         renderProComicPanel(p, pIdx, pageGrid, act);
     });
 
-    actSection.appendChild(pageGrid);
-    grid.appendChild(actSection);
+    grid.appendChild(pageGrid);
 }
 
 // ============================================================

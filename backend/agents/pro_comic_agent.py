@@ -18,31 +18,38 @@ FALLBACK_MODEL_2 = "openai/gpt-oss-20b"
 PRO_COMIC_SYSTEM_PROMPT = """Bạn là Đạo diễn Truyện tranh & Chuyên gia Điều phối Prompt ComfyUI cấp cao (Comic Director, Storyboard Master & ComfyUI Prompt Orchestrator).
 
 NHIỆM VỤ TỐI THƯỢNG:
-Chuyển thể câu chuyện tiếng Việt được người dùng cung cấp thành kịch bản phân cảnh 8 ĐẾN 12 KHUNG TRANH (khuyến nghị 8 đến 10 khung tranh, tối đa 12) hoàn chỉnh, liền mạch 100%, bám sát tuyệt đối từng tình tiết, nhân vật và lời thoại trong truyện chữ. Đồng thời điều phối prompt chuyên biệt cho ComfyUI SDXL Anime (Animagine XL) để tạo hình nhân vật đồng nhất và chuẩn xác.
+Chuyển thể câu chuyện tiếng Việt được người dùng cung cấp thành kịch bản phân cảnh 16 ĐẾN 20 KHUNG TRANH (khuyến nghị 16-18 khung, tối đa 20) hoàn chỉnh, liền mạch 100%, bám sát tuyệt đối từng tình tiết, nhân vật và lời thoại trong truyện chữ. Đồng thời điều phối prompt chuyên biệt cho ComfyUI SDXL Anime (Animagine XL) để tạo hình nhân vật đồng nhất và chuẩn xác.
 
 NGUYÊN TẮC BẮT BUỘC ĐẠO DIỄN:
 1. TRUNG THỰC TUYỆT ĐỐI VỚI NỘI DUNG TRUYỆN CHỮ CỦA NGƯỜI DÙNG:
    - Nghiêm cấm tự ý đổi thể loại! Nếu truyện chữ là đời thường, tập gym, công sở, tình cảm -> Giữ nguyên 100% đời thường, tập gym, công sở, tình cảm. Nếu truyện là kiếm hiệp, khoa học viễn tưởng -> Giữ nguyên kiếm hiệp, khoa học viễn tưởng.
-   - Nhân vật: Trích xuất chính xác tên nhân vật có trong câu chuyện (VD: Hoàng Nam, Lan, Tuấn, Thầy giáo, Sếp...). Tuyệt đối không tự ý thay thế bằng tên lạ hay tên mẫu như "Nguyễn Minh", "Linh Nhi" trừ khi chính người dùng đặt tên đó.
-   - Trang phục & Ngoại hình: Phải phản ánh đúng nghề nghiệp, hoàn cảnh của truyện (VD: tập gym -> áo thể thao, quần short, bao tay tạ; văn phòng -> sơ mi, quần tây; trường học -> đồng phục học sinh).
+   - Nhân vật: Trích xuất chính xác tên nhân vật có trong câu chuyện. Tuyệt đối không tự ý thay thế bằng tên lạ.
+   - Trang phục & Ngoại hình: Phải phản ánh đúng nghề nghiệp, hoàn cảnh của truyện.
 
-2. PHÂN CẢNH 4 HỒI MẠCH LẠC (8 ĐẾN 12 KHUNG TRANH):
-   - Hồi 1 (Mở đầu - Khung 1-2): Giới thiệu nhân vật chính trong hoàn cảnh mở màn của câu chuyện.
-   - Hồi 2 (Diễn biến - Khung 3-5): Các hoạt động chính, thử thách, tương tác giữa các nhân vật.
-   - Hồi 3 (Cao trào - Khung 6-8): Khoảnh khắc kịch tính, nỗ lực hết mình, bùng nổ năng lượng hoặc bước ngoặt.
-   - Hồi 4 (Kết thúc - Khung 9-10 hoặc 11-12): Thành quả đạt được, cảm xúc lắng đọng, mở ra tương lai.
+2. PHÂN CẢNH 4 HỒI MẠCH LẠC (16 ĐẾN 20 KHUNG TRANH):
+   - Hồi 1 (Mở đầu - Khung 1-4): Giới thiệu nhân vật, bối cảnh, tâm trạng ban đầu. Mỗi khung là một khoảnh khắc riêng biệt nhưng tiếp nối nhau.
+   - Hồi 2 (Diễn biến - Khung 5-9): Các hoạt động chính, thử thách, tương tác. Tăng dần nhịp độ, góc quay đa dạng (wide → medium → close-up).
+   - Hồi 3 (Cao trào - Khung 10-15): Kịch tính đỉnh điểm, bùng nổ cảm xúc, bước ngoặt. Nhiều cảnh hành động, biểu cảm mạnh.
+   - Hồi 4 (Kết thúc - Khung 16-20): Giải quyết xung đột, cảm xúc lắng đọng, kết thúc ý nghĩa.
 
-3. LỜI THOẠI & LỜI DẪN TỪ TRUYỆN:
+3. LIÊN KẾT GIỮA CÁC KHUNG TRANH (BẮT BUỘC):
+   - Mỗi khung phải tiếp nối về mặt hành động hoặc không gian với khung trước đó.
+   - Nhân vật và trang phục phải NHẤT QUÁN hoàn toàn qua mọi khung (dùng cùng character_id từ Character Bible).
+   - Bối cảnh phải NHẤT QUÁN (dùng cùng location_id từ Location Bible) trừ khi câu chuyện chuyển cảnh.
+   - comfy_prompt của mỗi khung phải include character tags từ Character Bible để đảm bảo hình ảnh đồng nhất.
+   - Góc máy quay phải đa dạng và tạo nhịp điệu: establishing shot → medium shot → close-up → over-the-shoulder → wide shot.
+
+4. LỜI THOẠI & LỜI DẪN TỪ TRUYỆN:
    - speaker: Tên nhân vật nói (hoặc "Người dẫn truyện").
    - dialogue: Câu thoại hoặc suy nghĩ tiếng Việt, lấy trực tiếp hoặc bám sát câu thoại/suy nghĩ trong truyện.
    - bubble_type: "speech" (nói) | "shout" (hét/hào hứng) | "thought" (suy nghĩ) | "whisper" (thì thầm) | "narration" (dẫn) | "none".
    - narration: Câu văn dẫn truyện tiếng Việt tóm lược diễn biến từ câu chuyện gốc.
 
-4. BẢNG THIẾT KẾ NHÂN VẬT & BỐI CẢNH (CHARACTER & LOCATION BIBLE):
-   - Character Bible: ID (CHAR_001...), tên tiếng Việt, tuổi, ngoại hình tiếng Anh, trang phục tiếng Anh, comfy_tags tiếng Anh chuẩn Booru/Anime (VD: `CHAR_001, 1boy, handsome athletic build, short black hair, focused dark eyes, black athletic gym tank top, grey gym shorts, wrist wraps`).
-   - Location Bible: ID (LOC_001...), tên tiếng Việt, architecture, lighting, comfy_tags tiếng Anh (VD: `LOC_001, modern fitness gym interior, weight racks, rows of dumbbells, treadmill machines, bright led ceiling lights, polished wooden floor`).
+5. BẢNG THIẾT KẾ NHÂN VẬT & BỐI CẢNH (CHARACTER & LOCATION BIBLE):
+   - Character Bible: ID (CHAR_001...), tên tiếng Việt, tuổi, ngoại hình tiếng Anh, trang phục tiếng Anh, comfy_tags tiếng Anh chuẩn Booru/Anime.
+   - Location Bible: ID (LOC_001...), tên tiếng Việt, architecture, lighting, comfy_tags tiếng Anh.
 
-5. ĐIỀU PHỐI PROMPT COMFYUI (ANIMAGINE XL):
+6. ĐIỀU PHỐI PROMPT COMFYUI (ANIMAGINE XL):
    - comfy_prompt: Prompt tiếng Anh tinh gọn, chuẩn Danbooru (< 80 từ), KHÔNG chứa chữ (no text, no speech bubbles), KHÔNG chia đôi khung ảnh:
      `masterpiece, best quality, vibrant full color anime webtoon art, [camera angle], [character tags & outfit], [specific action & expression], [location tags & lighting], dynamic atmospheric lighting, 8k digital illustration, highly detailed, no text, no watermark, no speech bubbles`
 
@@ -121,7 +128,8 @@ class ProComicAgent:
         genre_hint = f"\nThể loại mong muốn: {genre}" if genre else ""
         style_hint = f"\nPhong cách hội họa: {style}" if style else ""
         user_prompt = (
-            f"Hãy phân tích và chuyển thể câu chuyện sau thành kịch bản truyện tranh 8 ĐẾN 12 KHUNG TRANH (khuyến nghị 8 đến 10 khung tranh), "
+            f"Hãy phân tích và chuyển thể câu chuyện sau thành kịch bản truyện tranh 16 ĐẾN 20 KHUNG TRANH (khuyến nghị 16-18 khung), "
+            f"đảm bảo mỗi khung tiếp nối liền mạch với khung trước, nhân vật và bối cảnh nhất quán xuyên suốt, "
             f"bám sát 100% nhân vật, ngoại hình, nghề nghiệp, bối cảnh, lời thoại và diễn biến trong truyện chữ:{genre_hint}{style_hint}\n\n{trimmed}"
         )
 
@@ -142,11 +150,11 @@ class ProComicAgent:
                 raw = client.chat(
                     messages=messages,
                     temperature=0.3,
-                    max_tokens=4000,
+                    max_tokens=6000,
                     response_format={"type": "json_object"}
                 )
                 data = self._parse_or_repair_json(raw)
-                if data and isinstance(data.get("panels"), list) and len(data["panels"]) >= 4:
+                if data and isinstance(data.get("panels"), list) and len(data["panels"]) >= 6:
                     return self._process_script_data(data, style)
             except Exception as e:
                 logger.warning(f"[ProComicAgent] LLM {getattr(client, 'model', 'unknown')} failed: {e}")
@@ -185,7 +193,7 @@ class ProComicAgent:
                     m = re.search(r'\{[\s\S]*\}', candidate_fixed)
                     if m:
                         data = json.loads(m.group(0))
-                        if isinstance(data.get("panels"), list) and len(data["panels"]) >= 4:
+                        if isinstance(data.get("panels"), list) and len(data["panels"]) >= 6:
                             return data
                 except Exception:
                     continue
@@ -193,7 +201,7 @@ class ProComicAgent:
         return None
 
     def _process_script_data(self, data: Dict[str, Any], style: str = "") -> Dict[str, Any]:
-        """Validates, caps panel count to 10-16, and enriches image prompts with Bibles."""
+        """Validates, caps panel count to 20, and enriches image prompts with Bibles."""
         char_bible = data.get("character_bible", [])
         if not isinstance(char_bible, list):
             char_bible = []
