@@ -1541,6 +1541,34 @@ def copilot_event(request: CopilotEventRequest, current_user: User = Depends(get
         # Copilot process the event and decides the action
         result = agent.process_event(request.event_type, request.event_data, memory)
 
+        # ── If chatbot wants to generate a panel, do it now ───────────
+        if result.get("action") == "generate_panel":
+            params = result.get("action_params", {})
+            image_prompt = params.get("image_prompt", "anime manga panel, high quality")
+            panel_number = params.get("panel_number")
+            try:
+                from services.image_gen import generate_comic_panel_image
+                import time as _time
+                seed = int(_time.time()) % 100000000
+                raw_image = generate_comic_panel_image(image_prompt, seed=seed)
+
+                # Save image file
+                import uuid, os as _os
+                from pathlib import Path
+                images_dir = Path(__file__).parent / "images" / "final"
+                images_dir.mkdir(parents=True, exist_ok=True)
+                filename = f"chat_panel_{uuid.uuid4().hex[:8]}.png"
+                filepath = images_dir / filename
+                with open(filepath, "wb") as f:
+                    f.write(raw_image)
+                image_url = f"/api/images/final/{filename}"
+                result["action_params"]["image_url"] = image_url
+                print(f"[Copilot] Panel generated: {image_url}")
+            except Exception as img_err:
+                print(f"[Copilot] Panel generation error: {img_err}")
+                result["action_params"]["image_url"] = None
+                result["action_params"]["image_error"] = str(img_err)
+
         # Safe print for Windows
         try:
             print(f"--- MASTER CONTROLLER THOUGHT ---")

@@ -2813,6 +2813,17 @@ async function sendAssistantMessage() {
 
             if (action === 'reply_user') {
                 addMessageToChat('ai', params.message || 'Tôi đã nhận được tin nhắn của bạn.');
+            } else if (action === 'generate_panel') {
+                // Show confirmation message
+                if (params.message) addMessageToChat('ai', params.message);
+                // Show generated image inline (or error)
+                if (params.image_url) {
+                    addPanelImageToChat(params.image_url, params.panel_number);
+                } else if (params.image_error) {
+                    addMessageToChat('ai', `⚠️ Không thể tạo tranh lúc này: ${params.image_error}`);
+                } else {
+                    addMessageToChat('ai', '⚠️ ComfyUI chưa sẵn sàng. Hãy đảm bảo ComfyUI đang chạy và ngrok đang kết nối.');
+                }
             } else if (action === 'command_writer') {
                 if (params.message) addMessageToChat('ai', params.message);
                 await continueWritingWithInstruction(params.instruction);
@@ -2863,6 +2874,55 @@ function addMessageToChat(role, text) {
     history.scrollTop = history.scrollHeight;
 }
 
+// Show a generated panel image inline in the chat window
+function addPanelImageToChat(imageUrl, panelNumber) {
+    const history = document.getElementById('chatHistory');
+    if (!history) return;
+
+    const fullUrl = imageUrl.startsWith('http') ? imageUrl : `${API_URL}${imageUrl}`;
+    const label = panelNumber ? `Khung ${panelNumber}` : 'Tranh mới';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'chat-message chat-ai';
+    wrapper.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:8px;max-width:280px;">
+            <span style="font-size:0.8em;opacity:0.7;">🖼 ${label} đã được tạo:</span>
+            <img src="${fullUrl}" alt="${label}"
+                 style="width:100%;border-radius:8px;border:2px solid rgba(56,189,248,0.4);cursor:pointer;"
+                 onclick="window.open('${fullUrl}','_blank')"
+                 onerror="this.parentElement.innerHTML='<span style=color:red>❌ Không tải được ảnh</span>'" />
+            <button onclick="addChatPanelToComic('${fullUrl}', '${label}')"
+                    style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;
+                           border-radius:6px;padding:6px 12px;cursor:pointer;font-size:0.85em;font-weight:600;">
+                ➕ Thêm vào truyện tranh
+            </button>
+        </div>`;
+    history.appendChild(wrapper);
+    history.scrollTop = history.scrollHeight;
+}
+
+// Append a chat-generated panel image to the comic grid
+function addChatPanelToComic(imageUrl, label) {
+    const grid = document.getElementById('comicGrid') || document.getElementById('comicPanels');
+    if (!grid) {
+        alert('Chưa có truyện tranh nào. Hãy tạo truyện tranh trước, sau đó thêm khung này.');
+        return;
+    }
+    const panelCount = grid.querySelectorAll('.comic-panel, .panel-item, [class*="panel"]').length + 1;
+    const panelDiv = document.createElement('div');
+    panelDiv.className = 'comic-panel';
+    panelDiv.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;border:2px solid rgba(99,102,241,0.5);';
+    panelDiv.innerHTML = `
+        <img src="${imageUrl}" alt="${label}" style="width:100%;display:block;" />
+        <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.6);
+                    color:#fff;font-size:0.75em;padding:4px 8px;text-align:center;">
+            ${label} (thêm từ chat)
+        </div>`;
+    grid.appendChild(panelDiv);
+    // Scroll comic grid into view
+    panelDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    addMessageToChat('ai', `✅ Đã thêm "${label}" vào truyện tranh!`);
+}
 
 // =================== STORY ACTION BUTTONS ===================
 

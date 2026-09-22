@@ -22,6 +22,44 @@ class CopilotAgent:
             self.fallback_llm = GroqClient(model_name="qwen/qwen3.8-27b", api_key=self.api_key)
         return self.fallback_llm.chat(messages, temperature=temperature, max_tokens=max_tokens).strip()
 
+    # ── Intent: detect panel-generation requests ────────────────────────
+    PANEL_INTENT_PATTERNS = [
+        r"tạo\s*(thêm|thêm\s*)?tranh",
+        r"vẽ\s*(thêm|thêm\s*)?tranh",
+        r"tạo\s*(thêm\s*)?ảnh",
+        r"vẽ\s*(thêm\s*)?ảnh",
+        r"thêm\s*(tranh|ảnh|panel|khung)",
+        r"tạo\s*(thêm\s*)?panel",
+        r"generate\s*(more\s*)?panel",
+        r"add\s*(more\s*)?panel",
+        r"vẽ\s*khung",
+        r"tạo\s*khung",
+        r"sinh\s*(thêm\s*)?(ảnh|tranh|panel)",
+        r"(vẽ|tạo)\s*(minh\s*họa|hình\s*ảnh)",
+    ]
+
+    def _detect_panel_intent(self, message: str) -> bool:
+        msg_lower = message.lower()
+        for pattern in self.PANEL_INTENT_PATTERNS:
+            if re.search(pattern, msg_lower):
+                return True
+        return False
+
+    def _extract_panel_context(self, message: str, story_context: str) -> dict:
+        """Extract scene description and panel number hint from user message."""
+        # Look for panel/khung number mention
+        panel_num_match = re.search(r'(?:khung|panel|tranh|ảnh)\s*(?:số\s*)?(\d+)', message.lower())
+        panel_number = int(panel_num_match.group(1)) if panel_num_match else None
+
+        # Build a scene description from the message itself + story context
+        scene_description = message.strip()
+
+        return {
+            "panel_number": panel_number,
+            "scene_description": scene_description,
+            "story_context": story_context[-2000:] if story_context else "",
+        }
+
     def process_event(self, event_type: str, event_data: str, memory: StoryMemory = None) -> dict:
         user_message = event_data
         story_context = ""
@@ -38,6 +76,69 @@ class CopilotAgent:
 
         # Xử lý sự kiện trò chuyện trực tiếp (USER_CHAT)
         if event_type == "USER_CHAT":
+
+            # ── Fast-path: generate_panel intent ──────────────────────
+            if self._detect_panel_intent(user_message):
+                panel_ctx = self._extract_panel_context(user_message, short_context or story_context)
+                # Ask LLM to create a good image prompt from the request + story context
+                prompt_messages = [
+                    {"role": "system", "content": (
+                        "Bạn là chuyên gia tạo prompt ảnh truyện tranh theo phong cách anime/manga.\n"
+                        "Dựa vào yêu cầu của người dùng và nội dung truyện, hãy tạo:\n"
+                        "1. Một câu trả lời ngắn gọn thân thiện (tiếng Việt) xác nhận bạn đang tạo tranh.\n"
+                        "2. Một image_prompt tiếng Anh chi tiết cho Stable Diffusion / Animagine XL:\n"
+                        "   - Mô tả nhân vật, cảnh quan, ánh sáng, góc chụp.\n"
+                        "   - Style: anime, manga panel, high quality, detailed.\n\n"
+                        "TRẢ VỀ JSON:\n"
+                        "{\"message\": \"...\", \"image_prompt\": \"...\"}"
+                    )},
+                    {"role": "user", "content": (
+                        f"Yêu cầu: {user_message}\n\n"
+                        f"Nội dung truyện:\n{panel_ctx['story_context']}"
+                    )}
+                ]
+                try:
+                    llm_resp = self._call_llm(prompt_messages, temperature=0.6, max_tokens=600)
+                    parsed_prompt = {}
+                    # Try JSON parse
+                    try:
+                        m = re.search(r'\{.*\}', llm_resp, re.DOTALL)
+                        if m:
+                            parsed_prompt = json.loads(m.group(0))
+                    except Exception:
+                        pass
+
+                    image_prompt = parsed_prompt.get("image_prompt") or (
+                        f"anime manga panel, {user_message}, high quality, detailed, "
+                        f"vibrant colors, dramatic lighting"
+                    )
+                    confirm_message = parsed_prompt.get("message") or "Đang tạo tranh cho bạn... ⏳"
+
+                    return {
+                        "thought": "User requested panel generation",
+                        "action": "generate_panel",
+                        "action_params": {
+                            "message": confirm_message,
+                            "image_prompt": image_prompt,
+                            "panel_number": panel_ctx.get("panel_number"),
+                        }
+                    }
+                except Exception as e:
+                    print(f"[Copilot] Panel intent LLM error: {e}")
+                    return {
+                        "thought": "Fallback generate_panel",
+                        "action": "generate_panel",
+                        "action_params": {
+                            "message": "Đang tạo tranh cho bạn... ⏳",
+                            "image_prompt": (
+                                f"anime manga panel, {user_message}, "
+                                f"high quality, detailed, vibrant colors"
+                            ),
+                            "panel_number": panel_ctx.get("panel_number"),
+                        }
+                    }
+
+            # ── Normal chat flow ───────────────────────────────────────
             system_prompt = f"""Bạn là Trợ lý AI Sáng Tác Thông Minh (NarrAI Co-pilot) và Đồng Tác Giả.
 Nhiệm vụ hàng đầu của bạn là GIAO TIẾP VÀ HỖ TRỢ NGƯỜI DÙNG NHƯ MỘT NGƯỜI BẠN SÁNG TÁC THỰC THỤ:
 1. Giao tiếp tự nhiên, thân thiện, lịch thiệp, thông thái bằng tiếng Việt tự nhiên.
@@ -106,7 +207,7 @@ Thông tin hiện tại:
                     return parsed
             except Exception:
                 # Extract message field if unescaped newlines prevented JSON parsing
-                msg_match = re.search(r'"message"\s*:\s*"(.*?)(?:"\s*,\s*"|"\s*\}\s*\})', candidate, re.DOTALL)
+                msg_match = re.search(r'"message"\s*:\s*"(.*?)(?:"\s*,\s*"|\"\s*\}\s*\})', candidate, re.DOTALL)
                 if msg_match:
                     clean_msg = msg_match.group(1).encode().decode('unicode_escape', errors='ignore')
                     return {
